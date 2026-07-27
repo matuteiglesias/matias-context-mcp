@@ -5,14 +5,19 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "matias-context-mcp"
 version = "0.1.0"
-description = "Read-only governed resource kernel for the Matias MCP Context Gateway"
-requires-python = ">=3.11"
-dependencies = []
+description = "Read-only governed MCP gateway for Matias context resources"
+requires-python = ">=3.10"
+dependencies = [
+  "mcp[cli]==1.28.1",
+]
 
 [project.optional-dependencies]
 dev = [
   "pytest>=8,<9",
 ]
+
+[project.scripts]
+matias-context-mcp = "matias_context_mcp.server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -20,3 +25,4 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+asyncio_default_fixture_loop_scope = "function"

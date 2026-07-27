@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the kernel against configured real roots."""
+"""Exercise the transport-independent kernel."""
 
 from __future__ import annotations
 
@@ -22,9 +22,7 @@ def main() -> int:
     try:
         registry = load_registry()
         kernel = ResourceKernel(registry)
-        envelope = kernel.read(
-            sys.argv[1]
-        ).to_envelope()
+        envelope = kernel.read_envelope(sys.argv[1])
 
     except GatewayError as exc:
         print(

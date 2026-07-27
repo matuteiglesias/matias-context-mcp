@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import os
 import stat
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from ..errors import (
     ResourceNotFoundError,
@@ -15,7 +15,7 @@ from ..models import AuthorizedRead, RawResource
 
 
 class FilesystemAdapter:
-    """Read an AuthorizedRead; never accept a raw path."""
+    """Read an AuthorizedRead; never accept a raw client path."""
 
     def read(
         self,
@@ -43,19 +43,16 @@ class FilesystemAdapter:
 
             if not stat.S_ISREG(file_stat.st_mode):
                 raise ResourceNotFoundError(
-                    "Authorized resource is not "
-                    "a regular file.",
+                    "Authorized resource is not a regular file.",
                     resource_uri=authorized.requested_uri,
                 )
 
             if file_stat.st_size > authorized.maximum_bytes:
                 raise ResourceTooLargeError(
-                    "Resource exceeds the configured "
-                    "size limit.",
+                    "Resource exceeds the configured size limit.",
                     resource_uri=authorized.requested_uri,
                     details={
-                        "maximum_bytes":
-                            authorized.maximum_bytes,
+                        "maximum_bytes": authorized.maximum_bytes,
                     },
                 )
 
@@ -66,12 +63,10 @@ class FilesystemAdapter:
 
             if len(content) > authorized.maximum_bytes:
                 raise ResourceTooLargeError(
-                    "Resource exceeds the configured "
-                    "size limit.",
+                    "Resource exceeds the configured size limit.",
                     resource_uri=authorized.requested_uri,
                     details={
-                        "maximum_bytes":
-                            authorized.maximum_bytes,
+                        "maximum_bytes": authorized.maximum_bytes,
                     },
                 )
         finally:
@@ -79,7 +74,10 @@ class FilesystemAdapter:
 
         modified_at = (
             datetime
-            .fromtimestamp(file_stat.st_mtime, tz=UTC)
+            .fromtimestamp(
+                file_stat.st_mtime,
+                tz=timezone.utc,
+            )
             .isoformat()
             .replace("+00:00", "Z")
         )
