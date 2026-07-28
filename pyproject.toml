@@ -18,6 +18,7 @@ dev = [
 
 [project.scripts]
 matias-context-mcp = "matias_context_mcp.server:main"
+mctx = "matias_context_mcp.client_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

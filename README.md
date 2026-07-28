@@ -34,7 +34,7 @@ The source repositories remain authoritative.
 
 ## Current status
 
-The resource-only v0.1 vertical slice is implemented and under final contract hardening.
+**resource-only v0.1 MVP: CLOSED**
 
 Working:
 
@@ -51,16 +51,8 @@ Working:
 * SHA-256, size, authority and modification metadata;
 * deterministic domain errors;
 * real read from KB Contracts;
-* real MCP client probe;
+* everyday and acceptance-probe MCP clients over real `stdio` sessions;
 * no tools, prompts, writes or arbitrary filesystem access.
-
-Open before declaring the MVP complete:
-
-* align logical `manifest_id` grammar with producer-native run IDs;
-* align Knowledge Inspect manifest identity checks with its versioned public contract;
-* validate the KB Artifacts codec against a real selection manifest;
-* make the probe always emit a final summary on failure;
-* review the initial source-line budget.
 
 ## Resource namespace
 
@@ -147,7 +139,55 @@ python3 -m matias_context_mcp
 
 The server uses MCP over `stdio`. Protocol traffic is the only permitted output on `stdout`; operational diagnostics go to `stderr`.
 
-## Kernel probe
+## Read resources from the shell
+
+`mctx` is the everyday client. Each command starts the configured server, initializes a real MCP session, performs one resource operation, and prints formatted JSON to `stdout`:
+
+```bash
+mctx list
+mctx templates
+
+# Catalog and source descriptor
+mctx read 'matias-context://catalog/sources'
+mctx read 'matias-context://source/kb-contracts'
+
+# Governed context document
+mctx read \
+  'matias-context://source/knowledge-inspect/document/artifact-surface'
+
+# Producer manifests (replace IDs with configured, existing run IDs)
+mctx read \
+  'matias-context://manifest/knowledge-inspect/2026-07-27T180000Z'
+mctx read \
+  'matias-context://manifest/kb-artifacts/selection-2026-07-27T180000Z'
+
+# Extract the normalized document body
+mctx read \
+  'matias-context://source/knowledge-inspect/document/artifact-surface' \
+  | jq -r '.data.text'
+
+# Ordinary shell redirection remains available to the operator
+mctx read 'matias-context://catalog/sources' > catalog.json
+```
+
+Successful resource envelopes go to `stdout`; diagnostics, server logs, and structured failures go to `stderr`. The client itself does not create output files—the final example uses shell redirection explicitly.
+
+## Diagnostic and acceptance clients
+
+The three command surfaces have deliberately different purposes:
+
+```text
+scripts/read_resource.py
+    direct kernel diagnostic
+
+mctx
+    everyday real-MCP client
+
+scripts/probe_mcp.py
+    full acceptance and evidence probe
+```
+
+For a direct kernel diagnostic:
 
 ```bash
 python3 scripts/read_resource.py \
@@ -157,7 +197,7 @@ python3 scripts/read_resource.py \
   'matias-context://source/kb-contracts/document/manual-overview'
 ```
 
-## MCP client probe
+For the acceptance and evidence probe:
 
 ```bash
 python3 scripts/probe_mcp.py \
