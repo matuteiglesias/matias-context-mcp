@@ -1,0 +1,66 @@
+{
+  "contract_version": "mcp-context-gateway.v0.1",
+  "data": {
+    "count": 4,
+    "sources": [
+      {
+        "authority": "routing",
+        "available_documents": [
+          "routing-overview",
+          "published-source-catalog"
+        ],
+        "display_name": "Context Routing",
+        "manifest_producer": null,
+        "read_only": true,
+        "role": "routing_projection",
+        "source_id": "context-routing"
+      },
+      {
+        "authority": "authoritative",
+        "available_documents": [
+          "manual-overview"
+        ],
+        "display_name": "KB Contracts",
+        "manifest_producer": null,
+        "read_only": true,
+        "role": "contract_registry",
+        "source_id": "kb-contracts"
+      },
+      {
+        "authority": "operational",
+        "available_documents": [
+          "module-overview",
+          "module-definition",
+          "artifact-surface",
+          "health-contract"
+        ],
+        "display_name": "Knowledge Inspect",
+        "manifest_producer": "knowledge-inspect",
+        "read_only": true,
+        "role": "canonical_artifact_producer",
+        "source_id": "knowledge-inspect"
+      },
+      {
+        "authority": "derived",
+        "available_documents": [
+          "selector-overview",
+          "operator-guide"
+        ],
+        "display_name": "KB Artifacts",
+        "manifest_producer": "kb-artifacts",
+        "read_only": true,
+        "role": "governed_evidence_selector",
+        "source_id": "kb-artifacts"
+      }
+    ]
+  },
+  "resource": {
+    "family": "source_catalog",
+    "provenance": {
+      "kind": "generated",
+      "profile_id": "mvp-four-sources"
+    },
+    "read_only": true,
+    "uri": "matias-context://catalog/sources"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "resources": [
+    {
+      "description": "The four source identities configured for gateway contract v0.1.",
+      "mimeType": "application/json",
+      "name": "configured-context-sources",
+      "title": "Configured context sources",
+      "uri": "matias-context://catalog/sources"
+    }
+  ]
+}

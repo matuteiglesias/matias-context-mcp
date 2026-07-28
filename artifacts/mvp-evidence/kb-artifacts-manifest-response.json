@@ -1,0 +1,51 @@
+{
+  "contract_version": "mcp-context-gateway.v0.1",
+  "data": {
+    "json": {
+      "counts": {
+        "matched": 1,
+        "selected": 1
+      },
+      "generated_at": "2026-07-27T18:00:00Z",
+      "matched_partitions": [
+        {
+          "name": "synthetic",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "outputs": [
+        "selected.jsonl",
+        "selected.csv",
+        "artifact.md",
+        "manifest.json"
+      ],
+      "selection_request": {
+        "artifact_family": "selected-evidence"
+      }
+    },
+    "manifest_summary": {
+      "generated_at": "2026-07-27T18:00:00Z",
+      "manifest_id": "selection-2026-07-27T180000Z",
+      "outputs": [
+        "selected.jsonl",
+        "selected.csv",
+        "artifact.md",
+        "manifest.json"
+      ],
+      "producer_id": "kb-artifacts"
+    }
+  },
+  "resource": {
+    "authority": "derived",
+    "content_media_type": "application/json",
+    "family": "manifest",
+    "logical_id": "selection-2026-07-27T180000Z",
+    "modified_at": "2026-07-28T22:06:50.843448Z",
+    "producer_id": "kb-artifacts",
+    "read_only": true,
+    "sha256": "aa29d3a90bef154884136eb27d5f80893a226c0e0a0a8e3e1a9c184983b313f0",
+    "size_bytes": 361,
+    "source_id": "kb-artifacts",
+    "uri": "matias-context://manifest/kb-artifacts/selection-2026-07-27T180000Z"
+  }
+}

@@ -95,6 +95,7 @@ FROZEN_PROFILE: tuple[ProfileSource, ...] = (
         ),
         manifest_profile=ManifestProfile(
             producer_id="knowledge-inspect",
+            manifest_producer_id="kb",
             locator="artifacts/manifests/{manifest_id}.manifest.json",
             media_type="application/json",
             codec="knowledge_inspect_manifest",
@@ -122,6 +123,7 @@ FROZEN_PROFILE: tuple[ProfileSource, ...] = (
         ),
         manifest_profile=ManifestProfile(
             producer_id="kb-artifacts",
+            manifest_producer_id=None,
             locator="artifacts/runs/{manifest_id}/manifest.json",
             media_type="application/json",
             codec="kb_artifacts_manifest",

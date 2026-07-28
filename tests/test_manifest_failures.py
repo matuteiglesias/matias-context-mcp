@@ -39,6 +39,7 @@ def _knowledge_inspect_kernel(
         }),
         manifest_profile=ManifestProfile(
             producer_id="knowledge-inspect",
+            manifest_producer_id="kb",
             locator=(
                 "artifacts/manifests/"
                 "{manifest_id}.manifest.json"
@@ -244,7 +245,7 @@ def test_valid_manifest_adds_summary(
     ).write_text(
         json.dumps({
             "schema_version": "run-record.v1",
-            "producer": "knowledge-inspect",
+            "producer": {"id": "kb"},
             "run_id": "run-1",
             "status": "succeeded",
             "started_at": "2026-07-27T18:00:00Z",
@@ -308,3 +309,59 @@ def test_kb_artifacts_requires_manifest_output(
             "matias-context://manifest/"
             "kb-artifacts/selection-1"
         )
+
+
+def test_manifest_id_preserves_uppercase_in_locator(tmp_path: Path) -> None:
+    root = tmp_path / "root"
+    root.mkdir()
+    manifest_id = "2026-07-27T180000Z"
+    fixture = (
+        Path(__file__).parent / "fixtures" / "manifests"
+        / "knowledge-inspect" / f"{manifest_id}.manifest.json"
+    )
+    path = _ki_manifest_path(root, manifest_id)
+    path.write_bytes(fixture.read_bytes())
+
+    envelope = _knowledge_inspect_kernel(root).read_envelope(
+        "matias-context://manifest/knowledge-inspect/" + manifest_id
+    )
+
+    assert envelope["resource"]["logical_id"] == manifest_id
+    assert envelope["data"]["json"]["run_id"] == manifest_id
+
+
+def test_knowledge_inspect_producer_identity_is_exact(tmp_path: Path) -> None:
+    root = tmp_path / "root"
+    root.mkdir()
+    path = _ki_manifest_path(root, "run-1")
+    path.write_text(json.dumps({
+        "producer": "knowledge-inspect",
+        "run_id": "run-1",
+        "status": "succeeded",
+    }), encoding="utf-8")
+
+    with pytest.raises(MalformedManifestError):
+        _knowledge_inspect_kernel(root).read_envelope(
+            "matias-context://manifest/knowledge-inspect/run-1"
+        )
+
+
+def test_representative_kb_artifacts_fixture_uses_production_codec(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "root"
+    root.mkdir()
+    manifest_id = "selection-2026-07-27T180000Z"
+    fixture = (
+        Path(__file__).parent / "fixtures" / "manifests"
+        / "kb-artifacts" / f"{manifest_id}.manifest.json"
+    )
+    target = root / "artifacts" / "runs" / manifest_id / "manifest.json"
+    target.parent.mkdir(parents=True)
+    target.write_bytes(fixture.read_bytes())
+
+    envelope = _kb_artifacts_kernel(root).read_envelope(
+        "matias-context://manifest/kb-artifacts/" + manifest_id
+    )
+
+    assert envelope["data"]["json"]["counts"]["selected"] == 1

@@ -505,7 +505,7 @@ def test_valid_knowledge_inspect_manifest_is_normalized(
             {
                 "run_id": manifest_id,
                 "status": "succeeded",
-                "producer": "knowledge-inspect",
+                "producer": {"id": "kb"},
             }
         ),
         encoding="utf-8",

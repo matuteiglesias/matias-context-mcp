@@ -1,0 +1,11 @@
+{
+  "schema_version": "kb.manifest.v1",
+  "producer": {"id": "kb"},
+  "run_id": "2026-07-27T180000Z",
+  "status": "succeeded",
+  "started_at": "2026-07-27T18:00:00Z",
+  "completed_at": "2026-07-27T18:01:00Z",
+  "inputs": [],
+  "outputs": [{"kind": "summary", "name": "summary.json"}],
+  "checksums": {"summary.json": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+}

@@ -1,0 +1,9 @@
+PASS required resources-only capability negotiation
+PASS required resource discovery
+PASS required four-source catalog read
+PASS required KB Contracts document read
+PASS required governed rejection cases
+PASS optional knowledge-inspect manifest read
+PASS optional kb-artifacts manifest read
+PASS required no configured root in client responses
+PASS required MCP session

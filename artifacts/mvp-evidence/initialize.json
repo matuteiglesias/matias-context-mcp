@@ -1,0 +1,15 @@
+{
+  "capabilities": {
+    "experimental": {},
+    "resources": {
+      "listChanged": false,
+      "subscribe": false
+    }
+  },
+  "instructions": "Read-only gateway over governed Mat\u00edas context documents and\nproducer manifests.\n\nClients use logical resource URIs. The server does not expose\nphysical paths, arbitrary filesystem traversal, tools, prompts,\nshell execution, mutations, or unrestricted queries.",
+  "protocolVersion": "2025-11-25",
+  "serverInfo": {
+    "name": "matias-context-gateway",
+    "version": "0.1.0"
+  }
+}

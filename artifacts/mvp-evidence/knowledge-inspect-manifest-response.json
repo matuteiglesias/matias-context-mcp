@@ -1,0 +1,60 @@
+{
+  "contract_version": "mcp-context-gateway.v0.1",
+  "data": {
+    "json": {
+      "checksums": {
+        "summary.json": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "completed_at": "2026-07-27T18:01:00Z",
+      "inputs": [],
+      "outputs": [
+        {
+          "kind": "summary",
+          "name": "summary.json"
+        }
+      ],
+      "producer": {
+        "id": "kb"
+      },
+      "run_id": "2026-07-27T180000Z",
+      "schema_version": "kb.manifest.v1",
+      "started_at": "2026-07-27T18:00:00Z",
+      "status": "succeeded"
+    },
+    "manifest_summary": {
+      "checksums": {
+        "summary.json": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "completed_at": "2026-07-27T18:01:00Z",
+      "inputs": [],
+      "manifest_id": "2026-07-27T180000Z",
+      "outputs": [
+        {
+          "kind": "summary",
+          "name": "summary.json"
+        }
+      ],
+      "producer": {
+        "id": "kb"
+      },
+      "producer_id": "knowledge-inspect",
+      "run_id": "2026-07-27T180000Z",
+      "schema_version": "kb.manifest.v1",
+      "started_at": "2026-07-27T18:00:00Z",
+      "status": "succeeded"
+    }
+  },
+  "resource": {
+    "authority": "operational",
+    "content_media_type": "application/json",
+    "family": "manifest",
+    "logical_id": "2026-07-27T180000Z",
+    "modified_at": "2026-07-28T22:06:50.831448Z",
+    "producer_id": "knowledge-inspect",
+    "read_only": true,
+    "sha256": "56f48e295c5eed28f12e2f8aac21cdc7f00e949435dd7e71fbe3027d4b1327b2",
+    "size_bytes": 387,
+    "source_id": "knowledge-inspect",
+    "uri": "matias-context://manifest/knowledge-inspect/2026-07-27T180000Z"
+  }
+}
