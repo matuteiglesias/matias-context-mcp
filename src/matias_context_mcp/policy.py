@@ -103,6 +103,7 @@ class ReadPolicy:
             media_type=profile.media_type,
             codec=profile.codec,
             producer_id=profile.producer_id,
+            manifest_producer_id=profile.manifest_producer_id,
         )
 
     def _authorize_path(
@@ -115,6 +116,7 @@ class ReadPolicy:
         media_type: str,
         codec: str,
         producer_id: str | None,
+        manifest_producer_id: str | None = None,
     ) -> AuthorizedRead:
         relative = PurePosixPath(relative_path)
 
@@ -187,6 +189,7 @@ class ReadPolicy:
             authority=source.authority,
             codec=codec,
             producer_id=producer_id,
+            manifest_producer_id=manifest_producer_id,
         )
 
 

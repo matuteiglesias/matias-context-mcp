@@ -1,0 +1,11 @@
+2026-07-28 22:06:53,814 INFO mcp.server.lowlevel.server Processing request of type ListResourcesRequest
+2026-07-28 22:06:53,818 INFO mcp.server.lowlevel.server Processing request of type ListResourceTemplatesRequest
+2026-07-28 22:06:53,821 INFO mcp.server.lowlevel.server Processing request of type ReadResourceRequest
+2026-07-28 22:06:53,825 INFO mcp.server.lowlevel.server Processing request of type ReadResourceRequest
+2026-07-28 22:06:53,828 INFO mcp.server.lowlevel.server Processing request of type ReadResourceRequest
+2026-07-28 22:06:53,830 INFO mcp.server.lowlevel.server Processing request of type ReadResourceRequest
+2026-07-28 22:06:53,833 INFO mcp.server.lowlevel.server Processing request of type ReadResourceRequest
+2026-07-28 22:06:53,835 INFO mcp.server.lowlevel.server Processing request of type ReadResourceRequest
+2026-07-28 22:06:53,837 INFO mcp.server.lowlevel.server Processing request of type ReadResourceRequest
+2026-07-28 22:06:53,841 INFO mcp.server.lowlevel.server Processing request of type ReadResourceRequest
+2026-07-28 22:06:53,846 INFO mcp.server.lowlevel.server Processing request of type ReadResourceRequest

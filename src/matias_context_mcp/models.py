@@ -21,6 +21,7 @@ class ManifestProfile:
     locator: str
     media_type: str
     codec: str
+    manifest_producer_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +69,7 @@ class AuthorizedRead:
     authority: str
     codec: str
     producer_id: str | None = None
+    manifest_producer_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

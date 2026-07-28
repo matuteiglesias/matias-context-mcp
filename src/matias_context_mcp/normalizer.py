@@ -218,7 +218,7 @@ def _validate_knowledge_inspect_manifest(
         "producer" in parsed
         and not _producer_matches(
             parsed["producer"],
-            "knowledge-inspect",
+            raw.authorized.manifest_producer_id,
         )
     ):
         raise MalformedManifestError(
@@ -266,21 +266,13 @@ def _validate_kb_artifacts_manifest(
 
 def _producer_matches(
     value: Any,
-    expected: str,
+    expected: str | None,
 ) -> bool:
-    normalized_expected = (
-        expected
-        .replace("_", "-")
-        .lower()
-    )
+    if expected is None:
+        return True
 
     if isinstance(value, str):
-        return (
-            value
-            .replace("_", "-")
-            .lower()
-            == normalized_expected
-        )
+        return value == expected
 
     if isinstance(value, dict):
         candidates = [
@@ -289,13 +281,12 @@ def _producer_matches(
                 "id",
                 "name",
                 "producer_id",
-                "project",
                 "module",
             )
         ]
 
         return any(
-            _producer_matches(candidate, expected)
+            candidate == expected
             for candidate in candidates
             if candidate is not None
         )

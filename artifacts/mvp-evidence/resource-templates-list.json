@@ -1,0 +1,25 @@
+{
+  "resourceTemplates": [
+    {
+      "description": "Role, authority and exposed logical documents for one configured source.",
+      "mimeType": "application/json",
+      "name": "source-descriptor",
+      "title": "Source descriptor",
+      "uriTemplate": "matias-context://source/{source_id}"
+    },
+    {
+      "description": "A specifically mapped context document with bounded provenance.",
+      "mimeType": "application/json",
+      "name": "context-document",
+      "title": "Governed context document",
+      "uriTemplate": "matias-context://source/{source_id}/document/{document_id}"
+    },
+    {
+      "description": "A known producer manifest addressed by a validated logical manifest ID.",
+      "mimeType": "application/json",
+      "name": "producer-manifest",
+      "title": "Governed producer manifest",
+      "uriTemplate": "matias-context://manifest/{producer_id}/{manifest_id}"
+    }
+  ]
+}

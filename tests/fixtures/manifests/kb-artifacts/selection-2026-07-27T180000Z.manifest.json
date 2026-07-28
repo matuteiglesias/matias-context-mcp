@@ -1,0 +1,7 @@
+{
+  "selection_request": {"artifact_family": "selected-evidence"},
+  "generated_at": "2026-07-27T18:00:00Z",
+  "matched_partitions": [{"name": "synthetic", "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}],
+  "counts": {"matched": 1, "selected": 1},
+  "outputs": ["selected.jsonl", "selected.csv", "artifact.md", "manifest.json"]
+}

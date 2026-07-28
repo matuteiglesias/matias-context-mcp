@@ -25,4 +25,3 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
-asyncio_default_fixture_loop_scope = "function"

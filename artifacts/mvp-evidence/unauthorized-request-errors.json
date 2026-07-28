@@ -1,0 +1,52 @@
+{
+  "invalid_manifest_identifier": {
+    "code": -32602,
+    "data": {
+      "details": {},
+      "error_code": "invalid_uri",
+      "message": "Invalid manifest identifier.",
+      "resource_uri": "matias-context://manifest/knowledge-inspect/bad%2Fid"
+    },
+    "message": "Invalid manifest identifier."
+  },
+  "unknown_document": {
+    "code": -32002,
+    "data": {
+      "details": {},
+      "error_code": "unknown_document",
+      "message": "Unknown mapped document.",
+      "resource_uri": "matias-context://source/kb-contracts/document/not-mapped"
+    },
+    "message": "Unknown mapped document."
+  },
+  "unknown_producer": {
+    "code": -32002,
+    "data": {
+      "details": {},
+      "error_code": "unknown_producer",
+      "message": "Unknown configured manifest producer.",
+      "resource_uri": "matias-context://manifest/not-real/run-1"
+    },
+    "message": "Unknown configured manifest producer."
+  },
+  "unknown_run": {
+    "code": -32002,
+    "data": {
+      "details": {},
+      "error_code": "resource_not_found",
+      "message": "Mapped resource does not exist.",
+      "resource_uri": "matias-context://manifest/knowledge-inspect/definitely-not-a-run"
+    },
+    "message": "Mapped resource does not exist."
+  },
+  "unknown_source": {
+    "code": -32002,
+    "data": {
+      "details": {},
+      "error_code": "unknown_source",
+      "message": "Unknown configured source.",
+      "resource_uri": "matias-context://source/not-real/document/manual-overview"
+    },
+    "message": "Unknown configured source."
+  }
+}

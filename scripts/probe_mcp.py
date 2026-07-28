@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Run a real MCP client against the stdio gateway."""
-
+"""Run an MCP stdio probe and always finalize its evidence bundle."""
 from __future__ import annotations
 
 import argparse
@@ -9,573 +8,223 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Awaitable, Callable
 
-from mcp import (
-    ClientSession,
-    StdioServerParameters,
-)
+from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.shared.exceptions import McpError
 
 CATALOG_URI = "matias-context://catalog/sources"
-KB_CONTRACTS_URI = (
-    "matias-context://source/"
-    "kb-contracts/document/manual-overview"
-)
-
-REQUIRED_SERVER_ENV = (
-    "MATIAS_CONTEXT_GATEWAY_CONFIG",
-    "CONTEXT_ROUTING_ROOT",
-    "KB_CONTRACTS_ROOT",
-    "KNOWLEDGE_INSPECT_ROOT",
-    "KB_ARTIFACTS_ROOT",
+DOCUMENT_URI = "matias-context://source/kb-contracts/document/manual-overview"
+REQUIRED_ENV = (
+    "MATIAS_CONTEXT_GATEWAY_CONFIG", "CONTEXT_ROUTING_ROOT",
+    "KB_CONTRACTS_ROOT", "KNOWLEDGE_INSPECT_ROOT", "KB_ARTIFACTS_ROOT",
 )
 
 
-def _arguments() -> argparse.Namespace:
+def arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=Path("artifacts/mvp-evidence"),
-    )
-
-    parser.add_argument(
-        "--knowledge-inspect-manifest-id",
-        default=os.environ.get(
-            "KNOWLEDGE_INSPECT_MANIFEST_ID"
-        ),
-    )
-
-    parser.add_argument(
-        "--kb-artifacts-manifest-id",
-        default=os.environ.get(
-            "KB_ARTIFACTS_MANIFEST_ID"
-        ),
-    )
-
+    parser.add_argument("--output-dir", type=Path, default=Path("artifacts/mvp-evidence"))
+    parser.add_argument("--knowledge-inspect-manifest-id", default=os.getenv("KNOWLEDGE_INSPECT_MANIFEST_ID"))
+    parser.add_argument("--kb-artifacts-manifest-id", default=os.getenv("KB_ARTIFACTS_MANIFEST_ID"))
     return parser.parse_args()
 
 
-def _model_payload(value: Any) -> dict[str, Any]:
-    return value.model_dump(
-        mode="json",
-        by_alias=True,
-        exclude_none=True,
-    )
+def payload(value: Any) -> dict[str, Any]:
+    return value.model_dump(mode="json", by_alias=True, exclude_none=True)
 
 
-def _write_json(
-    path: Path,
-    payload: Any,
-) -> None:
-    path.write_text(
-        json.dumps(
-            payload,
-            indent=2,
-            sort_keys=True,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
+def write_json(path: Path, value: Any) -> None:
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-async def _read_json_resource(
-    session: ClientSession,
-    uri: str,
-) -> dict[str, Any]:
+async def read_json(session: ClientSession, uri: str) -> dict[str, Any]:
     result = await session.read_resource(uri)
-
-    if len(result.contents) != 1:
-        raise AssertionError(
-            f"Expected one resource body for {uri}."
-        )
-
-    content = result.contents[0]
-
-    if not hasattr(content, "text"):
-        raise AssertionError(
-            f"Expected text content for {uri}."
-        )
-
-    return json.loads(content.text)
+    if len(result.contents) != 1 or not hasattr(result.contents[0], "text"):
+        raise AssertionError(f"Expected one text resource for {uri}.")
+    return json.loads(result.contents[0].text)
 
 
-async def _expect_error(
-    session: ClientSession,
-    *,
-    uri: str,
-    expected_code: int,
-) -> dict[str, Any]:
+async def expect_error(session: ClientSession, uri: str, code: int) -> dict[str, Any]:
     try:
         await session.read_resource(uri)
-
     except McpError as exc:
-        payload = _model_payload(exc.error)
-
-        if payload.get("code") != expected_code:
-            raise AssertionError(
-                f"Unexpected error code for {uri}: "
-                f"{payload.get('code')}"
-            )
-
-        return payload
-
-    raise AssertionError(
-        f"Expected resource error for {uri}."
-    )
+        result = payload(exc.error)
+        if result.get("code") != code:
+            raise AssertionError(f"Expected {code}, got {result.get('code')} for {uri}.")
+        return result
+    raise AssertionError(f"Expected an MCP error for {uri}.")
 
 
-def _server_environment() -> dict[str, str]:
-    missing = [
-        name
-        for name in REQUIRED_SERVER_ENV
-        if not os.environ.get(name)
-    ]
+class Probe:
+    def __init__(self, output: Path) -> None:
+        self.output = output
+        self.checks: list[dict[str, Any]] = []
+        self.collected: dict[str, Any] = {}
 
-    if missing:
-        raise RuntimeError(
-            "Missing required environment variables: "
-            + ", ".join(missing)
+    async def check(
+        self,
+        name: str,
+        operation: Callable[[], Awaitable[Any]],
+        *,
+        required: bool = True,
+    ) -> Any | None:
+        try:
+            result = await operation()
+        except Exception as exc:
+            self.checks.append({
+                "name": name, "required": required,
+                "status": "FAIL" if required else "SKIP",
+                "detail": f"{type(exc).__name__}: {exc}",
+            })
+            return None
+        self.checks.append({"name": name, "required": required, "status": "PASS"})
+        return result
+
+    def skip(self, name: str, detail: str) -> None:
+        self.checks.append({"name": name, "required": False, "status": "SKIP", "detail": detail})
+
+    def finalize(self) -> bool:
+        summary = {
+            "status": "FAIL" if any(c["required"] and c["status"] != "PASS" for c in self.checks) else "PASS",
+            "checks": self.checks,
+        }
+        write_json(self.output / "probe-summary.json", summary)
+        (self.output / "probe-output.txt").write_text(
+            "\n".join(f"{c['status']} {'required' if c['required'] else 'optional'} {c['name']}" + (f": {c['detail']}" if c.get("detail") else "") for c in self.checks) + "\n",
+            encoding="utf-8",
         )
+        return summary["status"] == "PASS"
 
-    result = {
-        name: os.environ[name]
-        for name in REQUIRED_SERVER_ENV
+
+def server_environment() -> dict[str, str]:
+    missing = [name for name in REQUIRED_ENV if not os.getenv(name)]
+    if missing:
+        raise RuntimeError("Missing required environment variables: " + ", ".join(missing))
+    repository_src = str(Path(__file__).resolve().parents[1] / "src")
+    return {
+        **{name: os.environ[name] for name in REQUIRED_ENV},
+        "PYTHONUNBUFFERED": "1",
+        "PYTHONPATH": repository_src,
     }
 
-    result["PYTHONUNBUFFERED"] = "1"
-    return result
 
-
-def _assert_no_root_leaks(
-    payloads: dict[str, Any],
-) -> None:
-    serialized = json.dumps(
-        payloads,
-        sort_keys=True,
-    )
-
-    for variable in REQUIRED_SERVER_ENV[1:]:
-        root = os.environ[variable]
-
-        if root and root in serialized:
-            raise AssertionError(
-                f"Physical root leaked from {variable}."
-            )
-
-
-async def _run(
-    args: argparse.Namespace,
-) -> None:
-    output_dir = args.output_dir.resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    repository_root = (
-        Path(__file__).resolve().parents[1]
-    )
-
-    server_parameters = StdioServerParameters(
+async def run_session(args: argparse.Namespace, probe: Probe) -> None:
+    params = StdioServerParameters(
         command=sys.executable,
-        args=[
-            "-m",
-            "matias_context_mcp",
-        ],
-        env=_server_environment(),
-        cwd=repository_root,
+        args=["-m", "matias_context_mcp"],
+        env=server_environment(),
+        cwd=Path(__file__).resolve().parents[1],
     )
-
-    collected: dict[str, Any] = {}
-    checks: list[str] = []
-
-    stderr_path = output_dir / "server-stderr.txt"
-
-    with stderr_path.open(
-        "w",
-        encoding="utf-8",
-    ) as stderr_log:
-        async with stdio_client(
-            server_parameters,
-            errlog=stderr_log,
-        ) as (read_stream, write_stream):
-            async with ClientSession(
-                read_stream,
-                write_stream,
-            ) as session:
+    with (probe.output / "server-stderr.txt").open("w", encoding="utf-8") as errlog:
+        async with stdio_client(params, errlog=errlog) as streams:
+            async with ClientSession(*streams) as session:
                 initialized = await session.initialize()
-                initialize_payload = _model_payload(
-                    initialized
-                )
-                capabilities_payload = _model_payload(
-                    initialized.capabilities
-                )
+                init = payload(initialized)
+                capabilities = payload(initialized.capabilities)
+                write_json(probe.output / "initialize.json", init)
+                write_json(probe.output / "capabilities.json", capabilities)
 
-                collected["initialize"] = (
-                    initialize_payload
-                )
-                collected["capabilities"] = (
-                    capabilities_payload
-                )
+                async def capabilities_check() -> None:
+                    if capabilities.get("resources") is None:
+                        raise AssertionError("Resources capability missing.")
+                    unexpected = [name for name in ("tools", "prompts", "logging", "completions") if capabilities.get(name) is not None]
+                    if unexpected:
+                        raise AssertionError("Unexpected capabilities: " + ", ".join(unexpected))
+                await probe.check("resources-only capability negotiation", capabilities_check)
 
-                _write_json(
-                    output_dir / "initialize.json",
-                    initialize_payload,
-                )
-                _write_json(
-                    output_dir / "capabilities.json",
-                    capabilities_payload,
-                )
+                resources = payload(await session.list_resources())
+                templates = payload(await session.list_resource_templates())
+                write_json(probe.output / "resources-list.json", resources)
+                write_json(probe.output / "resource-templates-list.json", templates)
 
-                if (
-                    capabilities_payload.get(
-                        "resources"
-                    )
-                    is None
+                async def discovery_check() -> None:
+                    if CATALOG_URI not in {item["uri"] for item in resources["resources"]}:
+                        raise AssertionError("Catalog is not listed.")
+                    expected = {
+                        "matias-context://source/{source_id}",
+                        "matias-context://source/{source_id}/document/{document_id}",
+                        "matias-context://manifest/{producer_id}/{manifest_id}",
+                    }
+                    actual = {item["uriTemplate"] for item in templates["resourceTemplates"]}
+                    if not expected <= actual:
+                        raise AssertionError("Resource templates are incomplete.")
+                await probe.check("resource discovery", discovery_check)
+
+                async def catalog_check() -> dict[str, Any]:
+                    value = await read_json(session, CATALOG_URI)
+                    if value["data"]["count"] != 4:
+                        raise AssertionError("Catalog must contain four sources.")
+                    write_json(probe.output / "source-catalog-response.json", value)
+                    return value
+                catalog = await probe.check("four-source catalog read", catalog_check)
+
+                async def document_check() -> dict[str, Any]:
+                    value = await read_json(session, DOCUMENT_URI)
+                    required = {"uri", "source_id", "logical_id", "authority", "content_media_type", "size_bytes", "sha256", "modified_at"}
+                    missing = required - value["resource"].keys()
+                    if missing:
+                        raise AssertionError("Missing provenance: " + ", ".join(sorted(missing)))
+                    write_json(probe.output / "context-document-response.json", value)
+                    return value
+                document = await probe.check("KB Contracts document read", document_check)
+
+                async def errors_check() -> dict[str, Any]:
+                    cases = {
+                        "unknown_source": ("matias-context://source/not-real/document/manual-overview", -32002),
+                        "unknown_document": ("matias-context://source/kb-contracts/document/not-mapped", -32002),
+                        "invalid_manifest_identifier": ("matias-context://manifest/knowledge-inspect/bad%2Fid", -32602),
+                        "unknown_producer": ("matias-context://manifest/not-real/run-1", -32002),
+                        "unknown_run": ("matias-context://manifest/knowledge-inspect/definitely-not-a-run", -32002),
+                    }
+                    result = {name: await expect_error(session, uri, code) for name, (uri, code) in cases.items()}
+                    write_json(probe.output / "unauthorized-request-errors.json", result)
+                    return result
+                errors = await probe.check("governed rejection cases", errors_check)
+
+                probe.collected.update(catalog=catalog, context_document=document, errors=errors)
+                for producer, manifest_id, filename, key in (
+                    ("knowledge-inspect", args.knowledge_inspect_manifest_id, "knowledge-inspect-manifest-response.json", "knowledge_inspect_manifest"),
+                    ("kb-artifacts", args.kb_artifacts_manifest_id, "kb-artifacts-manifest-response.json", "kb_artifacts_manifest"),
                 ):
-                    raise AssertionError(
-                        "Resources capability missing."
-                    )
+                    if not manifest_id:
+                        probe.skip(f"{producer} manifest read", "No manifest ID configured.")
+                        write_json(probe.output / filename, {"status": "SKIP", "reason": "No manifest ID configured."})
+                        continue
+                    uri = f"matias-context://manifest/{producer}/{manifest_id}"
+                    async def manifest_check(uri: str = uri, filename: str = filename, key: str = key) -> dict[str, Any]:
+                        value = await read_json(session, uri)
+                        write_json(probe.output / filename, value)
+                        probe.collected[key] = value
+                        return value
+                    await probe.check(f"{producer} manifest read", manifest_check, required=False)
 
-                for absent_capability in (
-                    "tools",
-                    "prompts",
-                    "logging",
-                    "completions",
-                ):
-                    if capabilities_payload.get(
-                        absent_capability
-                    ) is not None:
-                        raise AssertionError(
-                            "Unexpected capability: "
-                            + absent_capability
-                        )
-
-                checks.append(
-                    "PASS resources-only capability negotiation"
-                )
-
-                resources_result = (
-                    await session.list_resources()
-                )
-                resources_payload = _model_payload(
-                    resources_result
-                )
-
-                collected["resources"] = (
-                    resources_payload
-                )
-
-                _write_json(
-                    output_dir / "resources-list.json",
-                    resources_payload,
-                )
-
-                listed_uris = {
-                    resource["uri"]
-                    for resource
-                    in resources_payload["resources"]
-                }
-
-                if CATALOG_URI not in listed_uris:
-                    raise AssertionError(
-                        "Source catalog was not listed."
-                    )
-
-                checks.append(
-                    "PASS source catalog listed"
-                )
-
-                templates_result = (
-                    await session
-                    .list_resource_templates()
-                )
-                templates_payload = _model_payload(
-                    templates_result
-                )
-
-                collected["resource_templates"] = (
-                    templates_payload
-                )
-
-                _write_json(
-                    output_dir
-                    / "resource-templates-list.json",
-                    templates_payload,
-                )
-
-                template_uris = {
-                    item["uriTemplate"]
-                    for item
-                    in templates_payload[
-                        "resourceTemplates"
-                    ]
-                }
-
-                required_templates = {
-                    "matias-context://source/{source_id}",
-                    (
-                        "matias-context://source/"
-                        "{source_id}/document/{document_id}"
-                    ),
-                    (
-                        "matias-context://manifest/"
-                        "{producer_id}/{manifest_id}"
-                    ),
-                }
-
-                if not required_templates.issubset(
-                    template_uris
-                ):
-                    raise AssertionError(
-                        "Required resource templates "
-                        "were not advertised."
-                    )
-
-                checks.append(
-                    "PASS resource templates listed"
-                )
-
-                catalog = await _read_json_resource(
-                    session,
-                    CATALOG_URI,
-                )
-
-                collected["catalog"] = catalog
-
-                _write_json(
-                    output_dir
-                    / "source-catalog-response.json",
-                    catalog,
-                )
-
-                if catalog["data"]["count"] != 4:
-                    raise AssertionError(
-                        "Catalog must contain four sources."
-                    )
-
-                checks.append(
-                    "PASS four-source catalog read"
-                )
-
-                context_document = (
-                    await _read_json_resource(
-                        session,
-                        KB_CONTRACTS_URI,
-                    )
-                )
-
-                collected["context_document"] = (
-                    context_document
-                )
-
-                _write_json(
-                    output_dir
-                    / "context-document-response.json",
-                    context_document,
-                )
-
-                resource = context_document["resource"]
-
-                for required_field in (
-                    "uri",
-                    "source_id",
-                    "logical_id",
-                    "authority",
-                    "size_bytes",
-                    "sha256",
-                ):
-                    if required_field not in resource:
-                        raise AssertionError(
-                            "Missing provenance field: "
-                            + required_field
-                        )
-
-                checks.append(
-                    "PASS real KB Contracts document read"
-                )
-
-                errors = {
-                    "unknown_source":
-                        await _expect_error(
-                            session,
-                            uri=(
-                                "matias-context://source/"
-                                "not-real/document/"
-                                "manual-overview"
-                            ),
-                            expected_code=-32002,
-                        ),
-                    "unknown_document":
-                        await _expect_error(
-                            session,
-                            uri=(
-                                "matias-context://source/"
-                                "kb-contracts/document/"
-                                "not-mapped"
-                            ),
-                            expected_code=-32002,
-                        ),
-                    "invalid_identifier":
-                        await _expect_error(
-                            session,
-                            uri=(
-                                "matias-context://source/"
-                                "kb-contracts/document/"
-                                "Uppercase"
-                            ),
-                            expected_code=-32602,
-                        ),
-                    "traversal":
-                        await _expect_error(
-                            session,
-                            uri=(
-                                "matias-context://source/"
-                                "kb-contracts/document/"
-                                "%2e%2e"
-                            ),
-                            expected_code=-32602,
-                        ),
-                    "unknown_producer":
-                        await _expect_error(
-                            session,
-                            uri=(
-                                "matias-context://manifest/"
-                                "not-real/run-1"
-                            ),
-                            expected_code=-32002,
-                        ),
-                    "unknown_run":
-                        await _expect_error(
-                            session,
-                            uri=(
-                                "matias-context://manifest/"
-                                "knowledge-inspect/"
-                                "definitely-not-a-run"
-                            ),
-                            expected_code=-32002,
-                        ),
-                }
-
-                collected["errors"] = errors
-
-                _write_json(
-                    output_dir
-                    / "unauthorized-request-errors.json",
-                    errors,
-                )
-
-                checks.append(
-                    "PASS governed rejection cases"
-                )
-
-                if (
-                    args.knowledge_inspect_manifest_id
-                    is not None
-                ):
-                    uri = (
-                        "matias-context://manifest/"
-                        "knowledge-inspect/"
-                        + args.knowledge_inspect_manifest_id
-                    )
-
-                    manifest = await _read_json_resource(
-                        session,
-                        uri,
-                    )
-
-                    collected[
-                        "knowledge_inspect_manifest"
-                    ] = manifest
-
-                    _write_json(
-                        output_dir
-                        / (
-                            "knowledge-inspect-"
-                            "manifest-response.json"
-                        ),
-                        manifest,
-                    )
-
-                    checks.append(
-                        "PASS Knowledge Inspect manifest read"
-                    )
-
-                if (
-                    args.kb_artifacts_manifest_id
-                    is not None
-                ):
-                    uri = (
-                        "matias-context://manifest/"
-                        "kb-artifacts/"
-                        + args.kb_artifacts_manifest_id
-                    )
-
-                    manifest = await _read_json_resource(
-                        session,
-                        uri,
-                    )
-
-                    collected[
-                        "kb_artifacts_manifest"
-                    ] = manifest
-
-                    _write_json(
-                        output_dir
-                        / (
-                            "kb-artifacts-"
-                            "manifest-response.json"
-                        ),
-                        manifest,
-                    )
-
-                    checks.append(
-                        "PASS KB Artifacts manifest read"
-                    )
-
-    _assert_no_root_leaks(collected)
-
-    checks.append(
-        "PASS no configured physical root leaked"
-    )
-    checks.append(
-        "PASS stdio remained protocol-clean"
-    )
-
-    summary = {
-        "outcome": "PASS",
-        "checks": checks,
-        "knowledge_inspect_manifest_tested":
-            args.knowledge_inspect_manifest_id
-            is not None,
-        "kb_artifacts_manifest_tested":
-            args.kb_artifacts_manifest_id
-            is not None,
-    }
-
-    _write_json(
-        output_dir / "probe-summary.json",
-        summary,
-    )
-
-    text = "\n".join(checks) + "\n"
-
-    (
-        output_dir
-        / "probe-output.txt"
-    ).write_text(
-        text,
-        encoding="utf-8",
-    )
-
-    print(text, end="")
+                async def leakage_check() -> None:
+                    serialized = json.dumps(probe.collected, sort_keys=True)
+                    for variable in REQUIRED_ENV[1:]:
+                        if os.environ[variable] in serialized:
+                            raise AssertionError(f"Physical root leaked from {variable}.")
+                await probe.check("no configured root in client responses", leakage_check)
 
 
-def main() -> None:
-    args = _arguments()
-    asyncio.run(_run(args))
+async def main_async(args: argparse.Namespace, probe: Probe) -> None:
+    await probe.check("MCP session", lambda: run_session(args, probe))
+
+
+def main() -> int:
+    args = arguments()
+    output = args.output_dir.resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "server-stderr.txt").touch()
+    probe = Probe(output)
+    try:
+        asyncio.run(main_async(args, probe))
+    except BaseException as exc:
+        probe.checks.append({"name": "probe finalization", "required": True, "status": "FAIL", "detail": f"{type(exc).__name__}: {exc}"})
+    finally:
+        passed = probe.finalize()
+    return 0 if passed else 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

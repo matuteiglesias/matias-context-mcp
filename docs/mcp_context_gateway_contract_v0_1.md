@@ -946,6 +946,21 @@ The resource-only MVP is complete when:
 | Provenance | Filesystem-backed documents and manifests return logical identity, authority, media type, byte size, SHA-256, and modification time when available. Generated catalog and descriptor resources return the profile provenance defined in Section 13.5. |
 | Kernel versus MCP | The MCP facade owns protocol lifecycle, resource registration, request/result translation, and `stderr` logging. The kernel owns parsing, registry lookup, authorization, resolution, canonicalization, bounded I/O, normalization, and provenance, and imports no MCP SDK types. |
 
+## 22.2 Identifier and producer-identity amendment
+
+The v0.1 URI grammar uses distinct identifier classes. Source IDs,
+producer IDs, and document IDs remain lowercase. A manifest ID is a
+producer-native, case-preserving, single URI segment of at most 128
+characters containing only ASCII letters, digits, `.`, `_`, and `-`;
+`..` remains forbidden. The gateway must apply its exact case to the
+fixed producer locator.
+
+The gateway producer ID and a manifest's source-local producer identity
+are separate contract values. For Knowledge Inspect, the gateway
+producer ID is `knowledge-inspect`, while the only accepted manifest
+producer identity is the stable module ID `kb`. Producer identity is
+matched exactly; fuzzy matching and case normalization are forbidden.
+
 ## 23. Deferred work
 
 The following may begin only after the MVP closes:

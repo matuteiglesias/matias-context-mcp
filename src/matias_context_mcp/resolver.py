@@ -9,8 +9,11 @@ from .errors import InvalidURIError
 from .models import ResourceRef
 
 _SCHEME = "matias-context"
-_IDENTIFIER = re.compile(
+_LOWERCASE_IDENTIFIER = re.compile(
     r"^[a-z0-9][a-z0-9._-]{0,127}$"
+)
+_MANIFEST_IDENTIFIER = re.compile(
+    r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
 )
 _MAX_URI_LENGTH = 1024
 
@@ -32,13 +35,27 @@ def _validate_identifier(
 ) -> str:
     if (
         ".." in identifier
-        or not _IDENTIFIER.fullmatch(identifier)
+        or not _LOWERCASE_IDENTIFIER.fullmatch(identifier)
     ):
         raise _invalid(
             uri,
             "Invalid logical identifier.",
         )
 
+    return identifier
+
+
+def _validate_manifest_identifier(
+    identifier: str,
+    *,
+    uri: str,
+) -> str:
+    """Validate a producer-native, case-preserving single segment."""
+    if (
+        ".." in identifier
+        or not _MANIFEST_IDENTIFIER.fullmatch(identifier)
+    ):
+        raise _invalid(uri, "Invalid manifest identifier.")
     return identifier
 
 
@@ -140,7 +157,7 @@ def parse_resource_uri(uri: str) -> ResourceRef:
             segments[0],
             uri=uri,
         )
-        manifest_id = _validate_identifier(
+        manifest_id = _validate_manifest_identifier(
             segments[1],
             uri=uri,
         )

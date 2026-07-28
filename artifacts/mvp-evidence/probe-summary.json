@@ -1,0 +1,50 @@
+{
+  "checks": [
+    {
+      "name": "resources-only capability negotiation",
+      "required": true,
+      "status": "PASS"
+    },
+    {
+      "name": "resource discovery",
+      "required": true,
+      "status": "PASS"
+    },
+    {
+      "name": "four-source catalog read",
+      "required": true,
+      "status": "PASS"
+    },
+    {
+      "name": "KB Contracts document read",
+      "required": true,
+      "status": "PASS"
+    },
+    {
+      "name": "governed rejection cases",
+      "required": true,
+      "status": "PASS"
+    },
+    {
+      "name": "knowledge-inspect manifest read",
+      "required": false,
+      "status": "PASS"
+    },
+    {
+      "name": "kb-artifacts manifest read",
+      "required": false,
+      "status": "PASS"
+    },
+    {
+      "name": "no configured root in client responses",
+      "required": true,
+      "status": "PASS"
+    },
+    {
+      "name": "MCP session",
+      "required": true,
+      "status": "PASS"
+    }
+  ],
+  "status": "PASS"
+}
