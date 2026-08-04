@@ -1,0 +1,44 @@
+# This file declares the repository boundary and its place in the GitHub estate.
+schema_version: 1
+id: kb.mcp.gateway
+repository:
+  id: repo.matias-context-mcp
+  github: matuteiglesias/matias-context-mcp
+domain: knowledge
+system: kb.mcp
+role: read-only-context-gateway
+lifecycle: active
+authority:
+  status: proposed
+  owns:
+  - bounded read-only MCP transport
+  - matias-context resource namespace and access adapters
+  does_not_own:
+  - source repository authority
+  - producer mutation
+  - arbitrary filesystem access
+interfaces:
+  consumes:
+  - catalog:kb.context-routing@1
+  - contract:kb.run-manifest@1
+  - artifact:kb.run-manifest@1
+  - artifact:kb.selected-evidence@1
+  produces:
+  - protocol:mcp.matias-context@1
+upstream:
+- repo.context
+- repo.gpt-digests
+- repo.kb-contracts
+- repo.knowledge-inspect
+downstream: []
+canonical_commands: []
+generated_paths: []
+verification:
+  status: metadata-only
+  last_verified: '2026-08-04'
+  command: null
+  unknowns:
+  - canonical smoke command requires local confirmation
+maintenance:
+  cadence: quarterly
+  next_review: '2026-11-01'
