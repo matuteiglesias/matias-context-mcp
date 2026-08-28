@@ -13,24 +13,15 @@ jobs:
   prove-context-routing-edge:
     runs-on: ubuntu-latest
     env:
-      CONTEXT_ROUTING_COMMIT: 2b5050522b86967c77699daf0c7a751468496831
       MATIAS_CONTEXT_GATEWAY_CONFIG: ${{ github.workspace }}/config/sources.example.json
-      CONTEXT_ROUTING_ROOT: ${{ github.workspace }}/upstream/context-routing
+      CONTEXT_ROUTING_ROOT: ${{ github.workspace }}/tests/fixtures/context_routing_provenance
       KB_CONTRACTS_ROOT: ${{ github.workspace }}/.w3-empty/kb-contracts
       KNOWLEDGE_INSPECT_ROOT: ${{ github.workspace }}/.w3-empty/knowledge-inspect
       KB_ARTIFACTS_ROOT: ${{ github.workspace }}/.w3-empty/kb-artifacts
 
     steps:
-      - name: Checkout MCP consumer
+      - name: Checkout MCP consumer and frozen public evidence
         uses: actions/checkout@v4
-
-      - name: Checkout pinned Context Routing producer
-        uses: actions/checkout@v4
-        with:
-          repository: matuteiglesias/context-routing
-          ref: ${{ env.CONTEXT_ROUTING_COMMIT }}
-          path: upstream/context-routing
-          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -51,8 +42,8 @@ jobs:
             "$KNOWLEDGE_INSPECT_ROOT" \
             "$KB_ARTIFACTS_ROOT"
 
-      - name: Prove pinned producer artifact through real MCP stdio
+      - name: Prove provenance-pinned producer artifact through real MCP stdio
         run: |
           python scripts/verify_context_routing_edge.py \
-            --producer-root "$CONTEXT_ROUTING_ROOT" \
-            --expected-commit "$CONTEXT_ROUTING_COMMIT"
+            --fixture-root "$CONTEXT_ROUTING_ROOT" \
+            --provenance "$CONTEXT_ROUTING_ROOT/provenance.json"
