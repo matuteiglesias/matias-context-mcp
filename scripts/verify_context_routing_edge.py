@@ -12,42 +12,48 @@ URI = (
     "matias-context://source/context-routing/"
     "document/published-source-catalog"
 )
-VERSIONED_CATALOG = Path("static/context-data/v1/sources.json")
-COMPATIBILITY_ALIAS = Path("static/context-data/sources.json")
 
 
 def _fail(message: str) -> None:
     raise RuntimeError(message)
 
 
-def _producer_commit(root: Path) -> str:
-    result = subprocess.run(
-        ["git", "-C", str(root), "rev-parse", "HEAD"],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip()
-
-
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--producer-root", required=True)
-    parser.add_argument("--expected-commit", required=True)
+    parser.add_argument("--fixture-root", required=True)
+    parser.add_argument("--provenance", required=True)
     args = parser.parse_args()
 
-    root = Path(args.producer_root).resolve(strict=True)
-    actual_commit = _producer_commit(root)
-    if actual_commit != args.expected_commit:
-        _fail(
-            "Context Routing checkout does not match the pinned producer commit: "
-            f"expected {args.expected_commit}, got {actual_commit}"
-        )
+    root = Path(args.fixture_root).resolve(strict=True)
+    provenance_path = Path(args.provenance).resolve(strict=True)
+    provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
 
-    catalog_path = root / VERSIONED_CATALOG
+    expected_repository = "matuteiglesias/context-routing"
+    expected_contract = "context_catalog@1"
+    if provenance.get("source_repository") != expected_repository:
+        _fail("Fixture provenance points to an unexpected producer repository")
+    if provenance.get("contract") != expected_contract:
+        _fail("Fixture provenance points to an unexpected contract")
+    if provenance.get("consumer_uri") != URI:
+        _fail("Fixture provenance consumer URI does not match the proof URI")
+
+    relative_path = provenance.get("source_path")
+    if relative_path != "static/context-data/v1/sources.json":
+        _fail("Fixture provenance does not pin the versioned v1 catalog path")
+
+    catalog_path = root / relative_path
     raw = catalog_path.read_bytes()
-    producer_catalog = json.loads(raw.decode("utf-8"))
+    actual_sha256 = hashlib.sha256(raw).hexdigest()
+    expected_sha256 = provenance.get("source_sha256")
+    if actual_sha256 != expected_sha256:
+        _fail(
+            "Frozen public fixture SHA-256 does not match provenance: "
+            f"expected {expected_sha256}, got {actual_sha256}"
+        )
+    if len(raw) != provenance.get("source_size_bytes"):
+        _fail("Frozen public fixture size does not match provenance")
 
+    producer_catalog = json.loads(raw.decode("utf-8"))
     if producer_catalog.get("schema_id") != "context_catalog":
         _fail("Producer catalog schema_id is not context_catalog")
     if producer_catalog.get("schema_version") != "1":
@@ -57,10 +63,6 @@ def main() -> int:
         _fail("Producer catalog sources is not a list")
     if producer_catalog.get("count") != len(sources):
         _fail("Producer catalog count does not match source list")
-
-    alias_path = root / COMPATIBILITY_ALIAS
-    if alias_path.exists() and alias_path.read_bytes() != raw:
-        _fail("Context Routing compatibility alias differs from v1 catalog bytes")
 
     result = subprocess.run(
         ["mctx", "read", URI],
@@ -74,7 +76,6 @@ def main() -> int:
     gateway = json.loads(result.stdout)
     resource = gateway.get("resource", {})
     gateway_catalog = gateway.get("data", {}).get("json")
-    expected_sha256 = hashlib.sha256(raw).hexdigest()
 
     expected_resource = {
         "source_id": "context-routing",
@@ -92,20 +93,22 @@ def main() -> int:
 
     if gateway_catalog != producer_catalog:
         _fail(
-            "Gateway normalized catalog differs from the pinned producer public catalog"
+            "Gateway normalized catalog differs from the provenance-pinned "
+            "producer public catalog"
         )
 
     summary = {
         "status": "PASS",
-        "producer_repository": "matuteiglesias/context-routing",
-        "producer_commit": actual_commit,
-        "artifact": VERSIONED_CATALOG.as_posix(),
+        "producer_repository": expected_repository,
+        "producer_commit": provenance.get("source_commit"),
+        "producer_git_blob_sha1": provenance.get("source_git_blob_sha1"),
+        "artifact": relative_path,
         "artifact_sha256": expected_sha256,
-        "contract": "context_catalog@1",
+        "contract": expected_contract,
         "source_count": len(sources),
         "gateway_uri": URI,
         "transport": "MCP stdio via mctx",
-        "compatibility_alias_byte_identical": alias_path.exists(),
+        "evidence_mode": "exact public fixture with pinned private-repo provenance",
     }
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0
