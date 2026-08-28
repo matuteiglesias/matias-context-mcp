@@ -52,6 +52,12 @@ def test_generated_context_routing_catalog_crosses_gateway_boundary(
     catalog_path = producer_root / "static/context-data/sources.json"
     assert catalog_path.is_file()
 
+    raw_catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    assert raw_catalog["schema_id"] == "context_catalog"
+    assert raw_catalog["schema_version"] == "1"
+    assert raw_catalog["generated_at"] == GENERATED_AT
+    assert raw_catalog["count"] == 1
+
     env: dict[str, str] = {}
     for source in PROFILE_BY_SOURCE.values():
         if source.source_id == "context-routing":
@@ -76,11 +82,13 @@ def test_generated_context_routing_catalog_crosses_gateway_boundary(
     assert envelope["resource"]["sha256"] == expected_sha
     assert envelope["resource"]["size_bytes"] == catalog_path.stat().st_size
 
-    assert payload["schema_id"] == "context_catalog"
-    assert payload["schema_version"] == "1"
-    assert payload["generated_at"] == GENERATED_AT
+    # The gateway intentionally projects the producer catalog into its frozen
+    # public resource contract rather than exposing producer control-plane fields.
+    assert payload["schema_version"] == "context-routing.public-source-catalog.v0.1"
     assert payload["count"] == 1
     assert [item["source_id"] for item in payload["sources"]] == ["PUBLIC001"]
+    assert "schema_id" not in payload
+    assert "generated_at" not in payload
 
     serialized = json.dumps(envelope)
     assert "INTERNAL_ORIGIN_SENTINEL" not in serialized
