@@ -13,7 +13,7 @@ jobs:
   prove-context-routing-edge:
     runs-on: ubuntu-latest
     env:
-      CONTEXT_ROUTING_COMMIT: aa8ffbd5d3c90b4819b27ba6e039b30a21ef38a2
+      CONTEXT_ROUTING_COMMIT: 2b5050522b86967c77699daf0c7a751468496831
       MATIAS_CONTEXT_GATEWAY_CONFIG: ${{ github.workspace }}/config/sources.example.json
       CONTEXT_ROUTING_ROOT: ${{ github.workspace }}/upstream/context-routing
       KB_CONTRACTS_ROOT: ${{ github.workspace }}/.w3-empty/kb-contracts
