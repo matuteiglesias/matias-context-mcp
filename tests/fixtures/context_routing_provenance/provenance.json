@@ -1,0 +1,14 @@
+{
+  "evidence_version": "w3.context-routing-edge.v1",
+  "source_repository": "matuteiglesias/context-routing",
+  "source_visibility": "private",
+  "source_commit": "2b5050522b86967c77699daf0c7a751468496831",
+  "source_path": "static/context-data/v1/sources.json",
+  "source_git_blob_sha1": "8017318abe428626d71df17b711489dd9746b712",
+  "source_sha256": "0f3b9830087edf8bc93105523c843161f96bb580a06663f82d6c2bdb4c47a31c",
+  "source_size_bytes": 850,
+  "contract": "context_catalog@1",
+  "consumer_uri": "matias-context://source/context-routing/document/published-source-catalog",
+  "capture_date": "2026-08-28",
+  "fixture_policy": "Exact bytes of the producer's already-public allow-list projection only; no private registry/control-plane fields are copied."
+}
