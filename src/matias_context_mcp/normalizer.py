@@ -135,6 +135,45 @@ def _apply_codec(
     )
 
 
+def _current_context_source(entry: dict[str, Any]) -> dict[str, Any] | None:
+    """Normalize Context Routing's current public `context_source@1` projection.
+
+    Context Routing already applies publication/exposure policy before emitting this
+    schema. The gateway therefore recognizes the explicit public schema rather than
+    requiring producer-control-plane fields that are intentionally absent.
+    """
+    if (
+        entry.get("schema_id") != "context_source"
+        or str(entry.get("schema_version")) != "1"
+    ):
+        return None
+
+    required = (
+        "source_id",
+        "display_name",
+        "slug",
+        "page_url",
+        "publication_kind",
+        "agent_ready",
+    )
+    if any(key not in entry for key in required):
+        return None
+
+    normalized = {
+        "source_id": entry["source_id"],
+        "source_name": entry["display_name"],
+        "publish_mode": entry["publication_kind"],
+        "published_slug": entry["slug"],
+        "is_agent_ready": entry["agent_ready"],
+        "page_url": entry["page_url"],
+    }
+    for key in ("artifact_url", "snapshot_url"):
+        if key in entry:
+            normalized[key] = entry[key]
+
+    return normalized
+
+
 def _project_context_catalog(
     parsed: Any,
     *,
@@ -159,6 +198,14 @@ def _project_context_catalog(
         if not isinstance(entry, dict):
             continue
 
+        current = _current_context_source(entry)
+        if current is not None:
+            projected.append(current)
+            continue
+
+        # Backward-compatible support for the older control-plane-shaped catalog.
+        # That representation still requires gateway-side publication/exposure
+        # filtering because it may contain non-public rows.
         if entry.get("publish_status") not in {
             "ready",
             "published",
