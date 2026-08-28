@@ -13,15 +13,24 @@ from .errors import (
 )
 from .models import RawResource, ResourceDocument
 
-_CONTEXT_ALLOWED_FIELDS = (
+_CONTEXT_CATALOG_SCHEMA_ID = "context_catalog"
+_CONTEXT_CATALOG_SCHEMA_VERSION = "1"
+_CONTEXT_SOURCE_SCHEMA_ID = "context_source"
+_CONTEXT_SOURCE_SCHEMA_VERSION = "1"
+_CONTEXT_REQUIRED_SOURCE_FIELDS = (
+    "schema_id",
+    "schema_version",
     "source_id",
-    "source_name",
-    "publish_mode",
-    "publish_status",
-    "published_slug",
-    "exposure_level",
-    "is_agent_ready",
+    "display_name",
+    "slug",
     "page_url",
+    "publication_kind",
+    "agent_ready",
+    "generated_at",
+)
+_CONTEXT_ALLOWED_FIELDS = (
+    *_CONTEXT_REQUIRED_SOURCE_FIELDS,
+    "public_origin_url",
     "artifact_url",
     "snapshot_url",
 )
@@ -140,16 +149,46 @@ def _project_context_catalog(
     *,
     uri: str,
 ) -> dict[str, Any]:
-    entries = (
-        parsed.get("sources")
-        if isinstance(parsed, dict)
-        else parsed
-    )
+    """Validate and re-project Context Routing's public v1 catalog.
+
+    Context Routing owns publication eligibility and emits an already-safe public
+    allow-list. The gateway therefore validates the public contract identity and
+    applies its own final field allow-list, but it must not re-run the producer's
+    private publication policy using fields that are intentionally absent from
+    the public artifact.
+    """
+
+    if not isinstance(parsed, dict):
+        raise MalformedJSONError(
+            "Context Routing catalog must be a JSON object.",
+            resource_uri=uri,
+        )
+
+    if (
+        parsed.get("schema_id") != _CONTEXT_CATALOG_SCHEMA_ID
+        or parsed.get("schema_version")
+        != _CONTEXT_CATALOG_SCHEMA_VERSION
+    ):
+        raise MalformedJSONError(
+            "Context Routing catalog has an unsupported contract identity.",
+            resource_uri=uri,
+        )
+
+    entries = parsed.get("sources")
+    declared_count = parsed.get("count")
 
     if not isinstance(entries, list):
         raise MalformedJSONError(
-            "Context Routing catalog must "
-            "contain a source list.",
+            "Context Routing catalog must contain a source list.",
+            resource_uri=uri,
+        )
+
+    if (
+        not isinstance(declared_count, int)
+        or declared_count != len(entries)
+    ):
+        raise MalformedJSONError(
+            "Context Routing catalog count does not match its source list.",
             resource_uri=uri,
         )
 
@@ -157,19 +196,41 @@ def _project_context_catalog(
 
     for entry in entries:
         if not isinstance(entry, dict):
-            continue
+            raise MalformedJSONError(
+                "Context Routing source entries must be JSON objects.",
+                resource_uri=uri,
+            )
 
-        if entry.get("publish_status") not in {
-            "ready",
-            "published",
-        }:
-            continue
+        if (
+            entry.get("schema_id") != _CONTEXT_SOURCE_SCHEMA_ID
+            or entry.get("schema_version")
+            != _CONTEXT_SOURCE_SCHEMA_VERSION
+        ):
+            raise MalformedJSONError(
+                "Context Routing source entry has an unsupported contract identity.",
+                resource_uri=uri,
+            )
 
-        if entry.get("exposure_level") not in {
-            "public",
-            "private_safe",
-        }:
-            continue
+        if any(
+            key not in entry
+            or not isinstance(entry[key], str)
+            for key in _CONTEXT_REQUIRED_SOURCE_FIELDS
+        ):
+            raise MalformedJSONError(
+                "Context Routing source entry is missing required public fields.",
+                resource_uri=uri,
+            )
+
+        for optional in (
+            "public_origin_url",
+            "artifact_url",
+            "snapshot_url",
+        ):
+            if optional in entry and not isinstance(entry[optional], str):
+                raise MalformedJSONError(
+                    "Context Routing source entry has an invalid public URL field.",
+                    resource_uri=uri,
+                )
 
         projected.append(
             {
@@ -179,12 +240,18 @@ def _project_context_catalog(
             }
         )
 
-    return {
-        "schema_version":
-            "context-routing.public-source-catalog.v0.1",
+    result: dict[str, Any] = {
+        "schema_id": _CONTEXT_CATALOG_SCHEMA_ID,
+        "schema_version": _CONTEXT_CATALOG_SCHEMA_VERSION,
         "count": len(projected),
         "sources": projected,
     }
+
+    generated_at = parsed.get("generated_at")
+    if isinstance(generated_at, str):
+        result["generated_at"] = generated_at
+
+    return result
 
 
 def _validate_knowledge_inspect_manifest(
