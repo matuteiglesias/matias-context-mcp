@@ -26,19 +26,26 @@ interfaces:
   produces:
   - protocol:mcp.matias-context@1
 upstream:
-- repo.context
-- repo.gpt-digests
+- repo.context-routing
+- repo.kb-artifacts
 - repo.kb-contracts
 - repo.knowledge-inspect
 downstream: []
-canonical_commands: []
-generated_paths: []
+canonical_commands:
+- python3 -m matias_context_mcp
+- mctx list
+- mctx templates
+- python3 -m pytest -q
+- python3 scripts/probe_mcp.py --output-dir artifacts/mvp-evidence
+generated_paths:
+- artifacts/mvp-evidence/
 verification:
   status: metadata-only
-  last_verified: '2026-08-04'
-  command: null
+  last_verified: '2026-08-28'
+  command: python3 -m pytest -q
   unknowns:
-  - canonical smoke command requires local confirmation
+  - canonical commands were reconciled against README.md and AGENTS.md but not executed during W2
+  - README states the resource-only v0.1 MVP is closed while AGENTS.md retains historical P0/P1 work items; current defect state needs a separate runtime verification if consequential
 maintenance:
   cadence: quarterly
   next_review: '2026-11-01'

@@ -123,10 +123,10 @@ The server reads a server-owned JSON mount configuration:
 ```bash
 export MATIAS_CONTEXT_GATEWAY_CONFIG="$PWD/config/sources.example.json"
 
-export CONTEXT_ROUTING_ROOT="$HOME/repos/context"
+export CONTEXT_ROUTING_ROOT="$HOME/repos/context-routing"
 export KB_CONTRACTS_ROOT="$HOME/repos/kb-contracts"
 export KNOWLEDGE_INSPECT_ROOT="$HOME/repos/knowledge-inspect"
-export KB_ARTIFACTS_ROOT="$HOME/repos/gpt-digests"
+export KB_ARTIFACTS_ROOT="$HOME/repos/kb-artifacts"
 ```
 
 These roots are operator configuration. They are not MCP client roots and cannot be changed by a client.
@@ -244,9 +244,10 @@ The kernel does not import MCP SDK types and can be reused by a CLI or another t
 
 ## Related systems
 
+* Context Routing: [https://github.com/matuteiglesias/context-routing](https://github.com/matuteiglesias/context-routing)
 * KB Contracts: [https://github.com/matuteiglesias/kb-contracts](https://github.com/matuteiglesias/kb-contracts)
 * Knowledge Inspect: [https://github.com/matuteiglesias/knowledge-inspect](https://github.com/matuteiglesias/knowledge-inspect)
-* KB Artifacts: [https://github.com/matuteiglesias/gpt-digests](https://github.com/matuteiglesias/gpt-digests)
+* KB Artifacts: [https://github.com/matuteiglesias/kb-artifacts](https://github.com/matuteiglesias/kb-artifacts)
 
 ## Portfolio summary
 
