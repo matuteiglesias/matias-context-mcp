@@ -1,0 +1,30 @@
+{
+  "schema_id": "context_catalog",
+  "schema_version": "1",
+  "generated_at": "2026-07-28T00:00:00+00:00",
+  "count": 2,
+  "sources": [
+    {
+      "schema_id": "context_source",
+      "schema_version": "1",
+      "source_id": "SRC002",
+      "display_name": "Capture Manual",
+      "slug": "capture-manual",
+      "page_url": "/context-routing/sources/capture-manual",
+      "publication_kind": "direct_link",
+      "agent_ready": "yes",
+      "generated_at": "2026-07-28T00:00:00+00:00"
+    },
+    {
+      "schema_id": "context_source",
+      "schema_version": "1",
+      "source_id": "SRC003",
+      "display_name": "Ops Manual",
+      "slug": "ops-manual",
+      "page_url": "/context-routing/sources/ops-manual",
+      "publication_kind": "direct_link",
+      "agent_ready": "yes",
+      "generated_at": "2026-07-28T00:00:00+00:00"
+    }
+  ]
+}
