@@ -40,7 +40,7 @@ FROZEN_PROFILE: tuple[ProfileSource, ...] = (
             ),
             DocumentSpec(
                 "published-source-catalog",
-                "static/context-data/sources.json",
+                "static/context-data/v1/sources.json",
                 "application/json",
                 "context_routing_public_catalog",
             ),
