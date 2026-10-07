@@ -169,6 +169,22 @@ As of 2026-10-07:
 * Projects Staff now adopts bootstrap as the preferred cross-repository
   orientation entrypoint when the v0.2 profile is available.
 
+## Current portfolio dogfood state
+
+As of 2026-10-07:
+
+* PR #18 adds `mctx.portfolio@1` as a two-read, client-side freshness-attention packet; it does not expand the MCP server;
+* real estate dogfood routed review-due Media, Base de Datos and Job Search to the right refresh work;
+* fresh authority checks exposed two within-window material-change misses (Poverty and Accounting), which were repaired upstream in Projects rather than hidden in MCP;
+* Projects PRs #57–#59 refreshed those Agendas, adopted portfolio for estate sweeps, and tightened active review cadences where the observed operating tempo justified it;
+* Calendar and ATS were successfully used as owning authorities without being copied into the gateway;
+* FCV and LCD ready-room samples did not show material repository movement;
+* no governed fresh material-activity artifact currently exists in Projects, so no commit-count/activity heuristic was added;
+* the supported claim is **review-horizon / orientation attention**, not “what moved today?” detection or project priority;
+* further portfolio features are paused until repeated real use exposes a concrete recurring friction.
+
+See `docs/m8_portfolio_dogfood_2026-10-07.md`.
+
 ## Current M7 knowledge-composition state
 
 As of 2026-10-07, the pinned cross-repository proof establishes one bounded

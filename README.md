@@ -227,6 +227,8 @@ ranking. Expand an individual room with `mctx bootstrap` only when the portfolio
 packet shows it deserves attention. See
 [the portfolio contract](docs/mctx_portfolio_contract_v1.md).
 
+Real dogfood across GitHub-heavy, Calendar-owned and Sheet-owned rooms confirms a narrower claim: portfolio is useful for deterministic **review-horizon / orientation attention**, but it is not a live “what moved today?” detector. Material changes inside a review window still require fresh owning-authority evidence and an upstream Agenda refresh. See the [M8 dogfood record](docs/m8_portfolio_dogfood_2026-10-07.md).
+
 Successful resource envelopes go to `stdout`; diagnostics, server logs, and structured failures go to `stderr`. The client itself does not create output files—the final example uses shell redirection explicitly.
 
 ## Diagnostic and acceptance clients
