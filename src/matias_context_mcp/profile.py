@@ -10,7 +10,17 @@ CONFIG_VERSION = "mcp-context-gateway.v0.1"
 PROFILE_ID = "mvp-four-sources"
 
 HARD_MAX_BYTES = 262_144
+SYSTEM_DECLARATION_MAX_BYTES = 65_536
 SUPPORTED_EXTENSIONS = frozenset({".md", ".json"})
+
+
+@dataclass(frozen=True, slots=True)
+class SourceIdentityExpectation:
+    schema_version: int
+    declaration_id: str
+    repository_id: str
+    github: str
+    system: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,6 +30,7 @@ class ProfileSource:
     role: str
     authority: str
     root_env: str
+    identity: SourceIdentityExpectation
     documents: tuple[DocumentSpec, ...]
     manifest_profile: ManifestProfile | None = None
 
@@ -31,6 +42,13 @@ FROZEN_PROFILE: tuple[ProfileSource, ...] = (
         role="routing_projection",
         authority="routing",
         root_env="CONTEXT_ROUTING_ROOT",
+        identity=SourceIdentityExpectation(
+            schema_version=1,
+            declaration_id="kb.context-routing.catalog",
+            repository_id="repo.context",
+            github="matuteiglesias/context-routing",
+            system="kb.context-routing",
+        ),
         documents=(
             DocumentSpec(
                 "routing-overview",
@@ -52,6 +70,13 @@ FROZEN_PROFILE: tuple[ProfileSource, ...] = (
         role="contract_registry",
         authority="authoritative",
         root_env="KB_CONTRACTS_ROOT",
+        identity=SourceIdentityExpectation(
+            schema_version=1,
+            declaration_id="kb.contracts.registry",
+            repository_id="repo.kb-contracts",
+            github="matuteiglesias/kb-contracts",
+            system="kb.contracts",
+        ),
         documents=(
             DocumentSpec(
                 "manual-overview",
@@ -67,13 +92,14 @@ FROZEN_PROFILE: tuple[ProfileSource, ...] = (
         role="canonical_artifact_producer",
         authority="operational",
         root_env="KNOWLEDGE_INSPECT_ROOT",
+        identity=SourceIdentityExpectation(
+            schema_version=1,
+            declaration_id="kb.inspect.runtime",
+            repository_id="repo.knowledge-inspect",
+            github="matuteiglesias/knowledge-inspect",
+            system="kb.inspect",
+        ),
         documents=(
-            DocumentSpec(
-                "module-overview",
-                "README.md",
-                "text/markdown",
-                "markdown",
-            ),
             DocumentSpec(
                 "module-definition",
                 "docs/modules/kb-module-definition.md",
@@ -81,14 +107,14 @@ FROZEN_PROFILE: tuple[ProfileSource, ...] = (
                 "markdown",
             ),
             DocumentSpec(
-                "artifact-surface",
-                "kb_artifact_surface.md",
+                "architecture-freeze",
+                "docs/architecture/knowledge-inspect-architecture-freeze.md",
                 "text/markdown",
                 "markdown",
             ),
             DocumentSpec(
-                "health-contract",
-                "kb_health_contract.md",
+                "operator-runbook",
+                "runbooks/kb_module_runbook.md",
                 "text/markdown",
                 "markdown",
             ),
@@ -107,6 +133,13 @@ FROZEN_PROFILE: tuple[ProfileSource, ...] = (
         role="governed_evidence_selector",
         authority="derived",
         root_env="KB_ARTIFACTS_ROOT",
+        identity=SourceIdentityExpectation(
+            schema_version=1,
+            declaration_id="kb.artifacts.selector",
+            repository_id="repo.gpt-digests",
+            github="matuteiglesias/kb-artifacts",
+            system="kb.artifacts",
+        ),
         documents=(
             DocumentSpec(
                 "selector-overview",
