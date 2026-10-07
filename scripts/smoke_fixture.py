@@ -60,6 +60,18 @@ def write_source_fixture(source, source_root: Path) -> None:
                     ),
                 encoding="utf-8",
             )
+        elif document.document_id == "agenda-index":
+            path.write_text(
+                json.dumps(
+                    {
+                        "contract": "context:project-agendas@1",
+                        "agenda_schema_version": 2,
+                        "agendas": {},
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
         elif document.media_type == "application/json":
             path.write_text("{}\n", encoding="utf-8")
         else:
