@@ -1,4 +1,4 @@
-"""Frozen public exposure profile for contract v0.1."""
+"""Static exposure profiles for MCP context gateway contracts v0.1 and v0.2."""
 
 from __future__ import annotations
 
@@ -6,8 +6,10 @@ from dataclasses import dataclass
 
 from .models import DocumentSpec, ManifestProfile
 
-CONFIG_VERSION = "mcp-context-gateway.v0.1"
-PROFILE_ID = "mvp-four-sources"
+V01_CONFIG_VERSION = "mcp-context-gateway.v0.1"
+V01_PROFILE_ID = "mvp-four-sources"
+V02_CONFIG_VERSION = "mcp-context-gateway.v0.2"
+V02_PROFILE_ID = "estate-orientation-v0.2"
 
 HARD_MAX_BYTES = 262_144
 SYSTEM_DECLARATION_MAX_BYTES = 65_536
@@ -35,7 +37,21 @@ class ProfileSource:
     manifest_profile: ManifestProfile | None = None
 
 
-FROZEN_PROFILE: tuple[ProfileSource, ...] = (
+@dataclass(frozen=True, slots=True)
+class GatewayProfile:
+    config_version: str
+    profile_id: str
+    sources: tuple[ProfileSource, ...]
+
+    @property
+    def by_source(self) -> dict[str, ProfileSource]:
+        return {
+            source.source_id: source
+            for source in self.sources
+        }
+
+
+V01_SOURCES: tuple[ProfileSource, ...] = (
     ProfileSource(
         source_id="context-routing",
         display_name="Context Routing",
@@ -164,7 +180,123 @@ FROZEN_PROFILE: tuple[ProfileSource, ...] = (
     ),
 )
 
-PROFILE_BY_SOURCE = {
-    source.source_id: source
-    for source in FROZEN_PROFILE
+PROJECTS_SOURCE = ProfileSource(
+    source_id="projects",
+    display_name="Projects",
+    role="estate_orientation",
+    authority="control-plane",
+    root_env="PROJECTS_ROOT",
+    identity=SourceIdentityExpectation(
+        schema_version=1,
+        declaration_id="portfolio.github-estate.registry",
+        repository_id="repo.projects",
+        github="matuteiglesias/projects",
+        system="portfolio.github-estate",
+    ),
+    documents=(
+        DocumentSpec(
+            "staff-operating-model",
+            "STAFF.md",
+            "text/markdown",
+            "markdown",
+        ),
+        DocumentSpec(
+            "agenda-guide",
+            "estate/agendas/README.md",
+            "text/markdown",
+            "markdown",
+        ),
+        DocumentSpec(
+            "agenda-freshness-contract",
+            "docs/project-agenda-freshness.md",
+            "text/markdown",
+            "markdown",
+        ),
+        DocumentSpec(
+            "agenda-index",
+            "generated/project-agenda-index.json",
+            "application/json",
+            "json",
+        ),
+        DocumentSpec(
+            "accounting-family",
+            "estate/agendas/accounting-family.md",
+            "text/markdown",
+            "markdown",
+        ),
+        DocumentSpec(
+            "base-de-datos-2c-2026",
+            "estate/agendas/base-de-datos-2c-2026.md",
+            "text/markdown",
+            "markdown",
+        ),
+        DocumentSpec(
+            "fcv-research",
+            "estate/agendas/fcv-research.md",
+            "text/markdown",
+            "markdown",
+        ),
+        DocumentSpec(
+            "job-search",
+            "estate/agendas/job-search.md",
+            "text/markdown",
+            "markdown",
+        ),
+        DocumentSpec(
+            "lcd-institutional-surfaces",
+            "estate/agendas/lcd-institutional-surfaces.md",
+            "text/markdown",
+            "markdown",
+        ),
+        DocumentSpec(
+            "media-monitor",
+            "estate/agendas/media-monitor.md",
+            "text/markdown",
+            "markdown",
+        ),
+        DocumentSpec(
+            "poverty-ecosystem",
+            "estate/agendas/poverty-ecosystem.md",
+            "text/markdown",
+            "markdown",
+        ),
+        DocumentSpec(
+            "relationships-opportunities",
+            "estate/agendas/relationships-opportunities.md",
+            "text/markdown",
+            "markdown",
+        ),
+    ),
+)
+
+V01_PROFILE = GatewayProfile(
+    config_version=V01_CONFIG_VERSION,
+    profile_id=V01_PROFILE_ID,
+    sources=V01_SOURCES,
+)
+V02_PROFILE = GatewayProfile(
+    config_version=V02_CONFIG_VERSION,
+    profile_id=V02_PROFILE_ID,
+    sources=V01_SOURCES + (PROJECTS_SOURCE,),
+)
+
+PROFILE_REGISTRY: dict[tuple[str, str], GatewayProfile] = {
+    (profile.config_version, profile.profile_id): profile
+    for profile in (V01_PROFILE, V02_PROFILE)
 }
+
+
+def get_profile(
+    config_version: str,
+    profile_id: str,
+) -> GatewayProfile | None:
+    return PROFILE_REGISTRY.get(
+        (config_version, profile_id)
+    )
+
+
+# Compatibility aliases intentionally remain pinned to exact v0.1 semantics.
+CONFIG_VERSION = V01_CONFIG_VERSION
+PROFILE_ID = V01_PROFILE_ID
+FROZEN_PROFILE = V01_PROFILE.sources
+PROFILE_BY_SOURCE = V01_PROFILE.by_source
