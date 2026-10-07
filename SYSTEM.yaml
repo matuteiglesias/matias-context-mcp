@@ -45,17 +45,19 @@ generated_paths:
 - artifacts/mvp-evidence/
 - artifacts/v02-evidence/
 verification:
-  status: trusted-v0.1-ci
+  status: trusted-v0.1-v0.2-ci
   last_verified: '2026-10-07'
-  command: make check; make smoke
+  command: make check; make smoke; make smoke-v02
   proven:
-  - PR #9 CI passed the canonical make check surface
-  - PR #9 CI passed the fixture-backed real MCP stdio smoke
-  - PR #9 CI passed the provenance-pinned Context Routing read through real MCP stdio
-  - mounted source identity and complete static-resource preflight are fail-closed startup requirements
+  - PR #9 established the trusted four-source v0.1 startup boundary
+  - PR #11 CI passes the canonical make check surface with both static profiles
+  - PR #11 CI passes the unchanged four-source v0.1 real-MCP stdio smoke
+  - PR #11 CI passes the five-source v0.2 real-MCP stdio smoke including a Projects Agenda-index read
+  - PR #11 CI preserves the provenance-pinned Context Routing read through real MCP stdio
   unknowns:
   - live producer run availability remains request-local and is not enumerated at startup
   - producer source-control provenance is declared and hashed but not remotely attested by the local gateway
+  - v0.2 validates Agenda-index contract/provenance syntax but cross-resource Agenda hash reconciliation remains a client/bootstrap responsibility
 maintenance:
   cadence: quarterly
   next_review: '2026-11-01'
