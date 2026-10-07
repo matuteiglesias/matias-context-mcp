@@ -13,7 +13,13 @@ from pathlib import Path
 
 import yaml
 
-from matias_context_mcp.profile import FROZEN_PROFILE, PROFILE_ID
+from matias_context_mcp.profile import (
+    GatewayProfile,
+    V01_PROFILE,
+    V01_PROFILE_ID,
+    V02_PROFILE,
+    V02_PROFILE_ID,
+)
 
 
 def write_source_fixture(source, source_root: Path) -> None:
@@ -63,11 +69,14 @@ def write_source_fixture(source, source_root: Path) -> None:
             )
 
 
-def _write_sources(root: Path) -> tuple[dict[str, str], list[dict[str, str]]]:
+def _write_sources(
+    root: Path,
+    profile: GatewayProfile,
+) -> tuple[dict[str, str], list[dict[str, str]]]:
     environment: dict[str, str] = {}
     mounts: list[dict[str, str]] = []
 
-    for source in FROZEN_PROFILE:
+    for source in profile.sources:
         source_root = root / source.source_id
         write_source_fixture(source, source_root)
         environment[source.root_env] = str(source_root)
@@ -133,18 +142,28 @@ def main() -> int:
         type=Path,
         default=Path("artifacts/mvp-evidence"),
     )
+    parser.add_argument(
+        "--profile",
+        choices=(V01_PROFILE_ID, V02_PROFILE_ID),
+        default=V01_PROFILE_ID,
+    )
     args = parser.parse_args()
 
+    profile = (
+        V01_PROFILE
+        if args.profile == V01_PROFILE_ID
+        else V02_PROFILE
+    )
     repository = Path(__file__).resolve().parents[1]
     with tempfile.TemporaryDirectory(prefix="mctx-smoke-") as temp:
         root = Path(temp)
-        source_environment, mounts = _write_sources(root)
+        source_environment, mounts = _write_sources(root, profile)
         config = root / "gateway.json"
         config.write_text(
             json.dumps(
                 {
-                    "config_version": "mcp-context-gateway.v0.1",
-                    "profile": PROFILE_ID,
+                    "config_version": profile.config_version,
+                    "profile": profile.profile_id,
                     "sources": mounts,
                 }
             ),
@@ -162,6 +181,8 @@ def main() -> int:
                 str(repository / "scripts" / "probe_mcp.py"),
                 "--output-dir",
                 str(args.output_dir),
+                "--expected-source-count",
+                str(len(profile.sources)),
             ],
             cwd=repository,
             env=environment,
