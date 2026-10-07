@@ -10,6 +10,13 @@ change_policy: "Changes require an explicit version bump or an approved contract
 
 # MCP Context Gateway Contract v0.1
 
+Normative amendment effective 2026-10-07:
+[Trusted Source Preflight](amendments/trusted-source-preflight-2026-10-07.md).
+The amendment repairs current source mappings, verifies mounted producer
+identity, requires complete static-resource startup preflight, and adds verified
+identity to source descriptors. Where it conflicts with the original frozen
+text below, the amendment governs v0.1 behavior.
+
 ## 1. Contract status
 
 This document freezes the architecture and external behavior of the first MCP Context Gateway MVP.

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .profile import CONFIG_VERSION, PROFILE_ID
+from .models import VerifiedSourceIdentity
 from .registry import SourceRegistry
 
 
@@ -76,6 +77,7 @@ def build_source_descriptor(
             "role": source.role,
             "authority": source.authority,
             "read_only": True,
+            "identity": _identity(source.identity),
             "available_documents": [
                 {
                     "document_id": document.document_id,
@@ -103,9 +105,28 @@ def _catalog_source(source: Any) -> dict[str, Any]:
         "role": source.role,
         "authority": source.authority,
         "read_only": True,
+        "identity": _identity(source.identity),
         "available_documents": [
             document.document_id
             for document in source.documents
         ],
         "manifest_producer": manifest_producer,
+    }
+
+
+
+def _identity(
+    identity: VerifiedSourceIdentity | None,
+) -> dict[str, Any] | None:
+    if identity is None:
+        return None
+
+    return {
+        "schema_version": identity.schema_version,
+        "declaration_id": identity.declaration_id,
+        "repository_id": identity.repository_id,
+        "github": identity.github,
+        "system": identity.system,
+        "verification": "verified",
+        "declaration_sha256": identity.declaration_sha256,
     }

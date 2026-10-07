@@ -41,8 +41,9 @@ Working:
 * Python MCP server over local `stdio`;
 * MCP initialization and capability negotiation;
 * resources capability only;
-* generated four-source catalog;
-* source descriptors;
+* generated four-source catalog backed by verified mounted producer identities;
+* source descriptors with declaration provenance;
+* fail-closed startup preflight of every mapped static document;
 * governed context-document reads;
 * explicit logical-document mappings;
 * canonical root-containment checks;
@@ -131,6 +132,17 @@ export KB_ARTIFACTS_ROOT="$HOME/repos/kb-artifacts"
 
 These roots are operator configuration. They are not MCP client roots and cannot be changed by a client.
 
+Each root must present the exact governed `SYSTEM.yaml` identity pinned by the
+v0.1 profile. Startup reads that declaration with a 64 KiB bound, verifies the
+stable estate repository ID, current GitHub name, declaration ID, system ID and
+schema version, then preflights every advertised static document through the same
+resource kernel used for client reads. A wrong/swapped root, missing declaration,
+missing document, unsafe symlink, invalid UTF-8/JSON, codec mismatch or oversized
+resource prevents startup; v0.1 does not advertise a partially healthy catalog.
+
+The current document mapping and startup rules are recorded in the
+[trusted-source-preflight v0.1 amendment](docs/amendments/trusted-source-preflight-2026-10-07.md).
+
 ## Run the server
 
 ```bash
@@ -206,11 +218,17 @@ python3 scripts/probe_mcp.py \
 
 The probe records machine-readable initialization, capabilities, listed resources, templates, successful reads and rejection evidence.
 
-## Tests
+## Verification
 
 ```bash
-python3 -m pytest -q
+make test
+make check
+make smoke
 ```
+
+`make smoke` provisions bounded verified fixture mounts and exercises the real
+MCP stdio session through the existing acceptance probe. It does not require
+live producer credentials or enumerate producer run histories.
 
 ## Architecture
 

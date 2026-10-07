@@ -1,4 +1,4 @@
-"""Strict loading of the server-owned v0.1 mount configuration."""
+"""Strict loading and trusted startup preflight for the v0.1 profile."""
 
 from __future__ import annotations
 
@@ -9,8 +9,12 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from .errors import ConfigurationError
-from .models import SourceSpec
+import yaml
+
+from .adapters.filesystem import FilesystemAdapter
+from .errors import ConfigurationError, GatewayError
+from .kernel import ResourceKernel
+from .models import AuthorizedRead, SourceSpec, VerifiedSourceIdentity
 from .profile import (
     CONFIG_VERSION,
     FROZEN_PROFILE,
@@ -18,6 +22,8 @@ from .profile import (
     PROFILE_BY_SOURCE,
     PROFILE_ID,
     SUPPORTED_EXTENSIONS,
+    SYSTEM_DECLARATION_MAX_BYTES,
+    ProfileSource,
 )
 from .registry import SourceRegistry
 
@@ -219,6 +225,158 @@ def _validate_relative_path(
         )
 
 
+def _is_descendant(candidate: Path, root: Path) -> bool:
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def _read_source_identity(
+    root: Path,
+    source: ProfileSource,
+) -> VerifiedSourceIdentity:
+    declaration = root / "SYSTEM.yaml"
+    authorized = AuthorizedRead(
+        requested_uri=f"startup://identity/{source.source_id}",
+        resource_family="source_identity",
+        source_id=source.source_id,
+        logical_id="SYSTEM.yaml",
+        canonical_path=declaration,
+        content_media_type="application/yaml",
+        maximum_bytes=SYSTEM_DECLARATION_MAX_BYTES,
+        authority="configuration",
+        codec="yaml",
+    )
+
+    try:
+        raw = FilesystemAdapter().read(authorized)
+    except GatewayError as exc:
+        raise ConfigurationError(
+            "Source identity declaration cannot be read.",
+            details={
+                "source_id": source.source_id,
+                "cause": exc.error_code,
+            },
+        ) from exc
+
+    try:
+        decoded = raw.content.decode("utf-8")
+        payload = yaml.safe_load(decoded)
+    except (UnicodeDecodeError, yaml.YAMLError) as exc:
+        raise ConfigurationError(
+            "Source identity declaration is not valid UTF-8 YAML.",
+            details={"source_id": source.source_id},
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise ConfigurationError(
+            "Source identity declaration must be one mapping.",
+            details={"source_id": source.source_id},
+        )
+
+    repository = payload.get("repository")
+    if not isinstance(repository, dict):
+        repository = {}
+
+    expected = source.identity
+    actual = {
+        "schema_version": payload.get("schema_version"),
+        "declaration_id": payload.get("id"),
+        "repository_id": repository.get("id"),
+        "github": repository.get("github"),
+        "system": payload.get("system"),
+    }
+    required = {
+        "schema_version": expected.schema_version,
+        "declaration_id": expected.declaration_id,
+        "repository_id": expected.repository_id,
+        "github": expected.github,
+        "system": expected.system,
+    }
+
+    mismatches = sorted(
+        key
+        for key, expected_value in required.items()
+        if actual.get(key) != expected_value
+    )
+
+    if mismatches:
+        raise ConfigurationError(
+            "Mounted source identity does not match "
+            "the frozen profile.",
+            details={
+                "source_id": source.source_id,
+                "mismatched_fields": mismatches,
+            },
+        )
+
+    return VerifiedSourceIdentity(
+        schema_version=expected.schema_version,
+        declaration_id=expected.declaration_id,
+        repository_id=expected.repository_id,
+        github=expected.github,
+        system=expected.system,
+        declaration_sha256=raw.sha256,
+    )
+
+
+def _preflight_manifest_locator(source: SourceSpec) -> None:
+    profile = source.manifest_profile
+    if profile is None:
+        return
+
+    probe = profile.locator.replace(
+        "{manifest_id}",
+        "preflight",
+    )
+    candidate = (
+        source.root
+        .joinpath(*PurePosixPath(probe).parts)
+        .resolve(strict=False)
+    )
+
+    if (
+        candidate == source.root
+        or not _is_descendant(candidate, source.root)
+    ):
+        raise ConfigurationError(
+            "Manifest locator resolves outside its source root.",
+            details={"source_id": source.source_id},
+        )
+
+    if candidate.suffix.lower() not in source.allowed_extensions:
+        raise ConfigurationError(
+            "Manifest locator uses an unsupported extension.",
+            details={"source_id": source.source_id},
+        )
+
+
+def _preflight_documents(registry: SourceRegistry) -> None:
+    kernel = ResourceKernel(registry)
+
+    for source in registry.list_sources():
+        _preflight_manifest_locator(source)
+
+        for document in source.documents:
+            uri = (
+                "matias-context://source/"
+                f"{source.source_id}/document/{document.document_id}"
+            )
+            try:
+                kernel.read(uri)
+            except GatewayError as exc:
+                raise ConfigurationError(
+                    "Mapped startup resource failed preflight.",
+                    details={
+                        "source_id": source.source_id,
+                        "document_id": document.document_id,
+                        "cause": exc.error_code,
+                    },
+                ) from exc
+
+
 def build_registry(
     settings: Settings,
     *,
@@ -255,6 +413,10 @@ def build_registry(
             )
 
         root = root.resolve(strict=True)
+        identity = _read_source_identity(
+            root,
+            profile_source,
+        )
 
         document_ids: set[str] = set()
 
@@ -312,10 +474,13 @@ def build_registry(
                 maximum_bytes=HARD_MAX_BYTES,
                 allowed_extensions=SUPPORTED_EXTENSIONS,
                 manifest_profile=manifest_profile,
+                identity=identity,
             )
         )
 
-    return SourceRegistry(specs)
+    registry = SourceRegistry(specs)
+    _preflight_documents(registry)
+    return registry
 
 
 def load_registry(

@@ -26,8 +26,8 @@ interfaces:
   produces:
   - protocol:mcp.matias-context@1
 upstream:
-- repo.context-routing
-- repo.kb-artifacts
+- repo.context
+- repo.gpt-digests
 - repo.kb-contracts
 - repo.knowledge-inspect
 downstream: []
@@ -35,7 +35,7 @@ canonical_commands:
 - python3 -m matias_context_mcp
 - mctx list
 - mctx templates
-- python3 -m pytest -q
+- make test\n- make check\n- make smoke
 - python3 scripts/probe_mcp.py --output-dir artifacts/mvp-evidence
 generated_paths:
 - artifacts/mvp-evidence/

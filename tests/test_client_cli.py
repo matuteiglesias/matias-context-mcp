@@ -9,21 +9,15 @@ from typing import Any
 
 import pytest
 
-from matias_context_mcp.profile import FROZEN_PROFILE, PROFILE_ID
+from matias_context_mcp.profile import PROFILE_ID
+from tests.helpers import provision_profile
 
 
 @pytest.fixture()
 def client_environment(tmp_path: Path) -> tuple[dict[str, str], dict[str, Path]]:
     environment = dict(os.environ)
-    roots: dict[str, Path] = {}
-    mounts = []
-
-    for source in FROZEN_PROFILE:
-        root = tmp_path / source.source_id
-        root.mkdir()
-        roots[source.source_id] = root
-        environment[source.root_env] = str(root)
-        mounts.append({"source_id": source.source_id, "root_env": source.root_env})
+    profile_environment, roots, mounts = provision_profile(tmp_path)
+    environment.update(profile_environment)
 
     (roots["kb-contracts"] / "README.md").write_text("# Governed contract\n", encoding="utf-8")
     (roots["knowledge-inspect"] / "artifacts/manifests").mkdir(parents=True)

@@ -32,15 +32,33 @@ jobs:
       - name: Install consumer
         run: python -m pip install -e '.[dev]'
 
-      - name: Run consumer regression suite
-        run: python -m pytest -q
+      - name: Run canonical checks
+        run: make check
 
-      - name: Prepare non-target source roots
+      - name: Run verified stdio smoke
+        run: make smoke
+
+      - name: Prepare verified source mounts
         run: |
-          mkdir -p \
-            "$KB_CONTRACTS_ROOT" \
-            "$KNOWLEDGE_INSPECT_ROOT" \
-            "$KB_ARTIFACTS_ROOT"
+          PYTHONPATH=src python - <<'PY'
+          import os
+          from pathlib import Path
+
+          from matias_context_mcp.profile import PROFILE_BY_SOURCE
+          from scripts.smoke_fixture import write_source_fixture
+
+          for source_id in (
+              "context-routing",
+              "kb-contracts",
+              "knowledge-inspect",
+              "kb-artifacts",
+          ):
+              source = PROFILE_BY_SOURCE[source_id]
+              write_source_fixture(
+                  source,
+                  Path(os.environ[source.root_env]),
+              )
+          PY
 
       - name: Prove provenance-pinned producer artifact through real MCP stdio
         run: |
