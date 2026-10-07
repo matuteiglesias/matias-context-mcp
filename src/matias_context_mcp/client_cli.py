@@ -149,11 +149,6 @@ async def _bootstrap(
         raise
 
     index = await _read_json(session, AGENDA_INDEX_URI)
-    agenda_uri = AGENDA_URI_TEMPLATE.format(
-        agenda_id=agenda_id
-    )
-    agenda = await _read_json(session, agenda_uri)
-    staff = await _read_json(session, STAFF_URI)
 
     source_data = source.get("data")
     if (
@@ -186,6 +181,12 @@ async def _bootstrap(
             "Requested Agenda is not present in the Projects Agenda index.",
             agenda_id=agenda_id,
         )
+
+    agenda_uri = AGENDA_URI_TEMPLATE.format(
+        agenda_id=agenda_id
+    )
+    agenda = await _read_json(session, agenda_uri)
+    staff = await _read_json(session, STAFF_URI)
 
     agenda_resource = agenda.get("resource")
     if not isinstance(agenda_resource, dict):
