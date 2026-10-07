@@ -15,6 +15,7 @@ authority:
   - matias-context resource namespace and access adapters
   - explicit static v0.1 and v0.2 exposure-profile selection
   - deterministic client-side Project Agenda bootstrap composition
+  - deterministic client-side portfolio freshness orientation
   does_not_own:
   - source repository authority
   - producer mutation
@@ -30,6 +31,7 @@ interfaces:
   - protocol:mcp.matias-context@1
   - protocol:mcp.matias-context@2
   - artifact:mctx.bootstrap@1
+  - artifact:mctx.portfolio@1
 upstream:
 - repo.context
 - repo.gpt-digests
@@ -42,6 +44,7 @@ canonical_commands:
 - mctx list
 - mctx templates
 - mctx bootstrap media-monitor --as-of 2026-10-07
+- mctx portfolio --as-of 2026-10-07
 - make test
 - make check
 - make bootstrap-test
