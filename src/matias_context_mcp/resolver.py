@@ -169,4 +169,23 @@ def parse_resource_uri(uri: str) -> ResourceRef:
             manifest_id=manifest_id,
         )
 
+    if (
+        parsed.netloc == "selected"
+        and len(segments) == 2
+    ):
+        producer_id = _validate_identifier(
+            segments[0],
+            uri=uri,
+        )
+        manifest_id = _validate_manifest_identifier(
+            segments[1],
+            uri=uri,
+        )
+        return ResourceRef(
+            uri=uri,
+            resource_family="selected_evidence",
+            producer_id=producer_id,
+            manifest_id=manifest_id,
+        )
+
     raise _invalid(uri)
