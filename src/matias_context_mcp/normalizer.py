@@ -124,6 +124,13 @@ def _apply_codec(
             uri=raw.authorized.requested_uri,
         )
 
+    if codec == "project_agenda_index":
+        _validate_project_agenda_index(
+            parsed,
+            uri=raw.authorized.requested_uri,
+        )
+        return parsed
+
     if codec == "knowledge_inspect_manifest":
         _validate_knowledge_inspect_manifest(
             parsed,
@@ -253,6 +260,69 @@ def _project_context_catalog(
 
     return result
 
+
+
+def _validate_project_agenda_index(
+    parsed: Any,
+    *,
+    uri: str,
+) -> None:
+    if not isinstance(parsed, dict):
+        raise MalformedJSONError(
+            "Projects Agenda index must be a JSON object.",
+            resource_uri=uri,
+        )
+
+    if (
+        parsed.get("contract") != "context:project-agendas@1"
+        or parsed.get("agenda_schema_version") != 2
+    ):
+        raise MalformedJSONError(
+            "Projects Agenda index has an unsupported contract identity.",
+            resource_uri=uri,
+        )
+
+    agendas = parsed.get("agendas")
+    if not isinstance(agendas, dict):
+        raise MalformedJSONError(
+            "Projects Agenda index must contain an agendas mapping.",
+            resource_uri=uri,
+        )
+
+    required = {
+        "title",
+        "posture",
+        "front_ids",
+        "last_material_refresh",
+        "review_after_days",
+        "review_due_on",
+        "declared_freshness",
+        "source_path",
+        "source_sha256",
+    }
+    for agenda_id, record in agendas.items():
+        if (
+            not isinstance(agenda_id, str)
+            or not isinstance(record, dict)
+            or not required <= set(record)
+        ):
+            raise MalformedJSONError(
+                "Projects Agenda index contains an invalid Agenda record.",
+                resource_uri=uri,
+            )
+
+        expected_path = f"estate/agendas/{agenda_id}.md"
+        sha256 = record.get("source_sha256")
+        if (
+            record.get("source_path") != expected_path
+            or not isinstance(sha256, str)
+            or len(sha256) != 64
+            or any(character not in "0123456789abcdef" for character in sha256)
+        ):
+            raise MalformedJSONError(
+                "Projects Agenda index has invalid source provenance.",
+                resource_uri=uri,
+            )
 
 def _validate_knowledge_inspect_manifest(
     parsed: Any,
