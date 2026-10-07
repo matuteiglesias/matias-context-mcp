@@ -13,6 +13,7 @@ authority:
   owns:
   - bounded read-only MCP transport
   - matias-context resource namespace and access adapters
+  - explicit static v0.1 and v0.2 exposure-profile selection
   does_not_own:
   - source repository authority
   - producer mutation
@@ -23,13 +24,16 @@ interfaces:
   - contract:kb.run-manifest@1
   - artifact:kb.run-manifest@1
   - artifact:kb.selected-evidence@1
+  - context:project-agendas@1
   produces:
   - protocol:mcp.matias-context@1
+  - protocol:mcp.matias-context@2
 upstream:
 - repo.context
 - repo.gpt-digests
 - repo.kb-contracts
 - repo.knowledge-inspect
+- repo.projects
 downstream: []
 canonical_commands:
 - python3 -m matias_context_mcp
