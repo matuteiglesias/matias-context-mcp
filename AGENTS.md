@@ -4,7 +4,7 @@
 
 ## Mission
 
-Conclude the resource-only MCP v0.1 vertical slice without expanding it into a larger platform.
+Maintain the resource-only MCP v0.1 trust boundary without expanding it into a larger platform.
 
 The required path is:
 
@@ -73,161 +73,51 @@ Excluded:
 11. Do not announce capabilities without registered behavior.
 12. Do not normalize producer IDs by lowercasing physical run IDs.
 
-## Current validated state
+## Current trusted v0.1 state
 
-* 30 tests pass.
-* Server starts with clean `stdout`.
-* MCP initialization succeeds.
-* Only resources capability is announced.
-* Source catalog works.
-* KB Contracts real document read works.
-* Basic rejection evidence works.
+As of 2026-10-07, the resource-only v0.1 trust boundary is closed and was
+validated in PR #9.
 
-## Current P0 defects
+Verified behavior:
 
-### P0-1 — Manifest identifier grammar
+* only the MCP resources capability is announced;
+* all four mounted roots must present the exact expected `SYSTEM.yaml` identity;
+* stable estate repository IDs are verified separately from current GitHub names;
+* the exact verified declaration bytes are SHA-256 recorded for provenance;
+* every advertised static document passes fail-closed startup preflight through
+  the ordinary policy/filesystem/normalizer path;
+* manifest locator containment is preflighted without enumerating run histories;
+* the repaired Knowledge Inspect document mappings point only to current
+  producer-owned documents;
+* the catalog and source descriptors expose verified identity without physical
+  roots;
+* `make check` passes in CI;
+* `make smoke` passes through a real fixture-backed MCP stdio session;
+* the provenance-pinned Context Routing consumer proof passes through real MCP
+  stdio;
+* issues #4 and #5 are closed.
 
-Real producer IDs include uppercase timestamp separators:
+The normative source-profile and preflight changes are recorded in
+`docs/amendments/trusted-source-preflight-2026-10-07.md`.
 
-The current identifier grammar rejects them.
-
-Implement separate identifier classes:
-
-* source IDs: lowercase;
-* producer IDs: lowercase;
-* document IDs: lowercase;
-* manifest IDs: producer-native case, single segment, bounded, and restricted to letters, digits, `.`, `_`, and `-`.
-
-Preserve manifest ID case exactly when applying the fixed locator.
-
-Update the contract or add an explicit v0.1 amendment. Do not silently diverge from documentation.
-
-### P0-2 — Knowledge Inspect producer identity
-
-Do not assume the repository name is the manifest's internal producer identity.
-
-Inspect:
-
-The public contract identifies the stable module producer as `kb`.
-
-Represent separately:
-
-* gateway producer ID: `knowledge-inspect`;
-* accepted source-local manifest producer identity: `kb`.
-
-Do not use fuzzy name matching.
-
-### P0-3 — Real manifest fixtures
-
-Copy sanitized representative manifests into test fixtures:
-
-
-Fixtures must not include local physical paths, secrets, user data or large bodies.
-
-Tests must use the same codecs as production.
-
-### P0-4 — Probe finalization
-
-`scripts/probe_mcp.py` must always produce:
-
-probe-summary.json
-probe-output.txt
-server-stderr.txt
-
-even when one check fails.
-
-Requirements:
-
-* catch expected MCP errors per check;
-* record `PASS`, `FAIL`, or `SKIP`;
-* finish all independent checks where safe;
-* write the summary in a `finally` path;
-* return nonzero when a required check fails;
-* avoid an unhandled `ExceptionGroup`;
-* clearly distinguish required checks from optional checks.
-
-### P0-5 — Real manifest path
-
-Demonstrate both:
-
-matias-context://manifest/knowledge-inspect/{real_id}
-matias-context://manifest/kb-artifacts/{real_id}
-
-Evidence must include:
-
-* logical URI;
-* producer ID;
-* manifest ID;
-* authority;
-* content media type;
-* byte size;
-* SHA-256;
-* modification timestamp;
-* normalized summary;
-* original parsed manifest body.
-
-## P1 defects
-
-### P1-1 — Static write scan false positives
-
-The existing shell check must detect actual write-capable calls, not words such as `str.replace`.
-
-Use a narrow pattern such as:
-
-\.(write_text|write_bytes|unlink|rename|rmdir|mkdir|chmod)\(
-subprocess\.
-os\.system\(
-
-It is only a supporting check. Tests and code review remain authoritative.
-
-### P1-2 — Pytest asyncio warning
-
-Set the fixture loop scope explicitly under `[tool.pytest.ini_options]` when `pytest-asyncio` is present:
-
-asyncio_default_fixture_loop_scope = "function"
-
-Do not add async test infrastructure unless needed.
-
-### P1-3 — Source-line review
-
-The runtime package is currently above the approximate v0.1 budget.
-
-Before reducing it:
-
-1. report line counts by module;
-2. identify duplication and overly verbose validation;
-3. distinguish necessary security logic from accidental ceremony;
-4. avoid compressed or clever code that weakens auditability.
-
-Prefer removing duplicated representations or unused abstraction. Do not optimize only for a numeric target.
-
-### P1-4 — Error evidence
-
-Add end-to-end evidence for:
-
-* unknown source;
-* unknown document;
-* invalid manifest identifier;
-* unknown producer;
-* unknown run;
-* malformed JSON;
-* malformed manifest;
-* symlink escape;
-* oversized document;
-* oversized manifest.
+Do not resurrect the historical retrofit defect list as active work. New defects
+belong in current reproducible issues with bounded acceptance criteria.
 
 ## Required validation
 
-Run:
+Run the canonical surfaces:
 
-python3 -m compileall -q src scripts tests
-python3 -m pytest -q
-python3 scripts/probe_mcp.py --output-dir artifacts/mvp-evidence
-git diff --check
+```bash
+make test
+make check
+make smoke
+```
 
 Verify:
 
+```bash
 git ls-files | grep -E '(^|/)(__pycache__/|.*\.py[co]$)'
+```
 
 returns nothing.
 

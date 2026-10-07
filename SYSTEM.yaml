@@ -40,12 +40,17 @@ canonical_commands:
 generated_paths:
 - artifacts/mvp-evidence/
 verification:
-  status: metadata-only
-  last_verified: '2026-08-28'
-  command: python3 -m pytest -q
+  status: trusted-v0.1-ci
+  last_verified: '2026-10-07'
+  command: make check; make smoke
+  proven:
+  - PR #9 CI passed the canonical make check surface
+  - PR #9 CI passed the fixture-backed real MCP stdio smoke
+  - PR #9 CI passed the provenance-pinned Context Routing read through real MCP stdio
+  - mounted source identity and complete static-resource preflight are fail-closed startup requirements
   unknowns:
-  - canonical commands were reconciled against README.md and AGENTS.md but not executed during W2
-  - README states the resource-only v0.1 MVP is closed while AGENTS.md retains historical P0/P1 work items; current defect state needs a separate runtime verification if consequential
+  - live producer run availability remains request-local and is not enumerated at startup
+  - producer source-control provenance is declared and hashed but not remotely attested by the local gateway
 maintenance:
   cadence: quarterly
   next_review: '2026-11-01'
