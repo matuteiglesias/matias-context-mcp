@@ -45,26 +45,29 @@ canonical_commands:
 - make test
 - make check
 - make bootstrap-test
+- make adoption-experiment
 - make smoke
 - make smoke-v02
 - python3 scripts/probe_mcp.py --output-dir artifacts/mvp-evidence
 generated_paths:
 - artifacts/mvp-evidence/
 - artifacts/v02-evidence/
+- artifacts/m6-adoption/
 verification:
-  status: trusted-v0.1-v0.2-ci
+  status: trusted-v0.1-v0.2-bootstrap-adopted-ci
   last_verified: '2026-10-07'
-  command: make check; make smoke; make smoke-v02
+  command: make check; make bootstrap-test; make smoke; make smoke-v02; make adoption-experiment
   proven:
   - PR #9 established the trusted four-source v0.1 startup boundary
-  - PR #11 CI passes the canonical make check surface with both static profiles
-  - PR #11 CI passes the unchanged four-source v0.1 real-MCP stdio smoke
-  - PR #11 CI passes the five-source v0.2 real-MCP stdio smoke including a Projects Agenda-index read
-  - PR #11 CI preserves the provenance-pinned Context Routing read through real MCP stdio
+  - PR #11 established the explicit five-source v0.2 profile while preserving exact v0.1 compatibility
+  - PR #13 proves deterministic mctx bootstrap over ordinary real-MCP stdio reads with fail-closed Agenda/index SHA reconciliation
+  - PR #15 passes the bounded Media/Poverty adoption experiment with semantically equivalent control/treatment results
+  - PR #15 reduces client invocations and stdio sessions by 75 percent per case while intentionally leaving MCP resource reads unchanged
+  - the provenance-pinned Context Routing read remains green through the same CI acceptance workflow
   unknowns:
   - live producer run availability remains request-local and is not enumerated at startup
   - producer source-control provenance is declared and hashed but not remotely attested by the local gateway
-  - v0.2 validates Agenda-index contract/provenance syntax but cross-resource Agenda hash reconciliation remains a client/bootstrap responsibility
+  - the public CI adoption experiment uses synthetic Projects fixture content; live private Projects mounting remains an operator-local acceptance surface
 maintenance:
   cadence: quarterly
   next_review: '2026-11-01'

@@ -49,6 +49,7 @@ Working:
 * resources capability only;
 * exact four-source v0.1 catalog backed by verified mounted producer identities;
 * explicit five-source v0.2 catalog adding the Projects orientation source;
+* deterministic `mctx bootstrap` orientation packets with Agenda/index SHA reconciliation;
 * source descriptors with declaration provenance;
 * fail-closed startup preflight of every mapped static document;
 * governed context-document reads;
@@ -152,7 +153,7 @@ The v0.2 contract is documented in
 These roots are operator configuration. They are not MCP client roots and cannot be changed by a client.
 
 Each root must present the exact governed `SYSTEM.yaml` identity pinned by the
-v0.1 profile. Startup reads that declaration with a 64 KiB bound, verifies the
+selected static profile. Startup reads that declaration with a 64 KiB bound, verifies the
 stable estate repository ID, current GitHub name, declaration ID, system ID and
 schema version, then preflights every advertised static document through the same
 resource kernel used for client reads. A wrong/swapped root, missing declaration,
@@ -258,14 +259,34 @@ The probe records machine-readable initialization, capabilities, listed resource
 ```bash
 make test
 make check
+make bootstrap-test
 make smoke
 make smoke-v02
+make adoption-experiment
 ```
 
 `make smoke` remains the exact four-source v0.1 acceptance path.
 `make smoke-v02` separately proves the five-source profile and reads the
 Projects Agenda index through a real MCP stdio session. Neither requires live
 producer credentials or enumerates producer run histories.
+
+
+## Adoption experiment
+
+The bounded M6 experiment compares manual reconstruction against `mctx bootstrap`
+for two representative Agenda IDs, one review-due and one within-window. Both
+paths read the same four governed MCP resources and must return equivalent
+orientation/provenance facts.
+
+The passing CI result is deliberately narrow:
+
+* CLI invocations per case: **4 -> 1**;
+* MCP stdio sessions per case: **4 -> 1**;
+* MCP resource reads per case: **4 -> 4**.
+
+That is a 75% reduction in client/session orchestration, not a claim of fewer
+source reads, universal latency improvement, or better LLM reasoning. See
+[`docs/m6_adoption_experiment_2026-10-07.md`](docs/m6_adoption_experiment_2026-10-07.md).
 
 ## Architecture
 

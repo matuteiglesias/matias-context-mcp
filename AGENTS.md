@@ -151,6 +151,24 @@ MCP-server responsibility. It is implemented by `mctx bootstrap` according to
 5. A bootstrap packet is orientation evidence, not permission to bypass
    repository-local governance or runtime verification.
 
+## Current bootstrap/adoption state
+
+As of 2026-10-07:
+
+* PR #13 proves `mctx.bootstrap@1` through the real CLI and MCP stdio path;
+* the command performs four ordinary resource reads inside one session;
+* it fails closed when the Agenda SHA-256 disagrees with the producer-owned
+  Agenda index;
+* explicit `--as-of` controls the REVIEW_DUE decision;
+* PR #15's Media/Poverty experiment passes both refresh-needed and
+  orientation-ready branches;
+* the experiment shows 4 -> 1 CLI invocations and 4 -> 1 stdio sessions per
+  case, while correctly remaining 4 -> 4 MCP reads;
+* the experiment is an orchestration/adoption proof, not an LLM-quality or
+  latency benchmark;
+* Projects Staff now adopts bootstrap as the preferred cross-repository
+  orientation entrypoint when the v0.2 profile is available.
+
 ## Required validation
 
 Run the canonical surfaces:
@@ -159,6 +177,7 @@ Run the canonical surfaces:
 make test
 make check
 make bootstrap-test
+make adoption-experiment
 make smoke
 make smoke-v02
 ```
@@ -197,6 +216,9 @@ artifacts/v02-evidence/
   probe-summary.json
   probe-output.txt
   server-stderr.txt
+
+artifacts/m6-adoption/
+  report.json
 
 Do not commit evidence containing physical roots or secrets.
 
