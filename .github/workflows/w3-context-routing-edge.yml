@@ -35,8 +35,11 @@ jobs:
       - name: Run canonical checks
         run: make check
 
-      - name: Run verified stdio smoke
+      - name: Run verified v0.1 stdio smoke
         run: make smoke
+
+      - name: Run verified v0.2 stdio smoke
+        run: make smoke-v02
 
       - name: Prepare verified source mounts
         run: |
