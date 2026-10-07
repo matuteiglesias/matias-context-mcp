@@ -209,3 +209,41 @@ def test_v02_requires_projects_mount(
 
     with pytest.raises(ConfigurationError):
         load_settings(config, environ=environment)
+
+
+def test_v02_rejects_wrong_projects_agenda_index_contract(
+    tmp_path: Path,
+) -> None:
+    environment, roots, mounts = provision_profile(
+        tmp_path,
+        V02_PROFILE,
+    )
+    (
+        roots["projects"]
+        / "generated"
+        / "project-agenda-index.json"
+    ).write_text(
+        json.dumps(
+            {
+                "contract": "not-project-agendas",
+                "agenda_schema_version": 2,
+                "agendas": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    config = _write_config(
+        tmp_path,
+        config_version=V02_CONFIG_VERSION,
+        profile_id=V02_PROFILE_ID,
+        mounts=mounts,
+        name="wrong-agenda-index.json",
+    )
+    settings = load_settings(config, environ=environment)
+
+    with pytest.raises(ConfigurationError) as failure:
+        build_registry(settings, environ=environment)
+
+    assert failure.value.details["source_id"] == "projects"
+    assert failure.value.details["document_id"] == "agenda-index"
+    assert failure.value.details["cause"] == "malformed_json"
