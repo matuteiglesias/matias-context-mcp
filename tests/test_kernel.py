@@ -37,6 +37,7 @@ from matias_context_mcp.registry import SourceRegistry
 from matias_context_mcp.resolver import (
     parse_resource_uri,
 )
+from tests.helpers import provision_profile
 
 
 def _mounts() -> list[dict[str, str]]:
@@ -76,16 +77,7 @@ def _write_config(
 def _environment(
     tmp_path: Path,
 ) -> tuple[dict[str, str], dict[str, Path]]:
-    env: dict[str, str] = {}
-    roots: dict[str, Path] = {}
-
-    for source in PROFILE_BY_SOURCE.values():
-        root = tmp_path / source.source_id
-        root.mkdir()
-
-        env[source.root_env] = str(root)
-        roots[source.source_id] = root
-
+    env, roots, _ = provision_profile(tmp_path)
     return env, roots
 
 
