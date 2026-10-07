@@ -25,6 +25,16 @@ class ManifestProfile:
 
 
 @dataclass(frozen=True, slots=True)
+class VerifiedSourceIdentity:
+    schema_version: int
+    declaration_id: str
+    repository_id: str
+    github: str
+    system: str
+    declaration_sha256: str
+
+
+@dataclass(frozen=True, slots=True)
 class SourceSpec:
     source_id: str
     display_name: str
@@ -35,6 +45,7 @@ class SourceSpec:
     maximum_bytes: int
     allowed_extensions: frozenset[str]
     manifest_profile: ManifestProfile | None = None
+    identity: VerifiedSourceIdentity | None = None
 
     def document(self, document_id: str) -> DocumentSpec | None:
         return next(
