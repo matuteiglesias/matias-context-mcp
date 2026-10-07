@@ -1,4 +1,4 @@
-.PHONY: test check bootstrap-test smoke smoke-v02
+.PHONY: test check bootstrap-test smoke smoke-v02 adoption-experiment
 
 test:
 	python3 -m pytest -q
@@ -17,3 +17,6 @@ smoke:
 
 smoke-v02:
 	PYTHONPATH=src python3 scripts/smoke_fixture.py --profile estate-orientation-v0.2 --output-dir artifacts/v02-evidence
+
+adoption-experiment:
+	PYTHONPATH=src python3 scripts/adoption_experiment.py --output artifacts/m6-adoption/report.json
