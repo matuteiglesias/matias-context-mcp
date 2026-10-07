@@ -260,6 +260,131 @@ def test_unknown_agenda_is_client_side_bootstrap_error(
     assert failure["error_code"] == "unknown_agenda"
 
 
+def test_portfolio_summarizes_all_agendas_without_expanding_documents(
+    v02_environment: tuple[
+        dict[str, str],
+        dict[str, Path],
+    ],
+) -> None:
+    environment, roots = v02_environment
+    packet = _success(
+        _mctx(
+            environment,
+            "portfolio",
+            "--as-of",
+            "2026-10-07",
+        )
+    )
+
+    assert packet["contract"] == "mctx.portfolio@1"
+    assert packet["as_of"] == "2026-10-07"
+    assert packet["summary"] == {
+        "total": 8,
+        "refresh_needed": 1,
+        "orientation_ready": 7,
+    }
+    assert packet["ordering"] == {
+        "basis": "freshness-attention",
+        "project_priority": False,
+    }
+    assert packet["agendas"][0]["agenda_id"] == "media-monitor"
+    assert packet["agendas"][0]["reason"] == "review-due"
+    assert packet["agendas"][0]["review_delta_days"] == 6
+    assert packet["agendas"][1]["agenda_id"] == "poverty-ecosystem"
+    assert packet["agendas"][1]["review_delta_days"] == -1
+    assert [item["kind"] for item in packet["provenance"]["resources"]] == [
+        "source_descriptor",
+        "agenda_index",
+    ]
+    output = result_output = json.dumps(packet)
+    assert all(
+        str(root) not in result_output
+        for root in roots.values()
+    )
+
+
+def test_portfolio_due_date_boundary_expands_refresh_set(
+    v02_environment: tuple[
+        dict[str, str],
+        dict[str, Path],
+    ],
+) -> None:
+    environment, _ = v02_environment
+    packet = _success(
+        _mctx(
+            environment,
+            "portfolio",
+            "--as-of",
+            "2026-10-08",
+        )
+    )
+
+    assert packet["summary"]["refresh_needed"] == 2
+    assert [
+        item["agenda_id"]
+        for item in packet["agendas"][:2]
+    ] == [
+        "media-monitor",
+        "poverty-ecosystem",
+    ]
+
+
+def test_portfolio_declared_stale_sorts_before_review_due(
+    v02_environment: tuple[
+        dict[str, str],
+        dict[str, Path],
+    ],
+) -> None:
+    environment, roots = v02_environment
+    index_path = (
+        roots["projects"]
+        / "generated"
+        / "project-agenda-index.json"
+    )
+    payload = json.loads(
+        index_path.read_text(encoding="utf-8")
+    )
+    payload["agendas"]["accounting-family"][
+        "declared_freshness"
+    ] = "STALE"
+    index_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    packet = _success(
+        _mctx(
+            environment,
+            "portfolio",
+            "--as-of",
+            "2026-10-07",
+        )
+    )
+
+    assert packet["summary"]["refresh_needed"] == 2
+    assert packet["agendas"][0]["agenda_id"] == "accounting-family"
+    assert packet["agendas"][0]["reason"] == "declared-stale"
+    assert packet["agendas"][1]["agenda_id"] == "media-monitor"
+
+
+def test_portfolio_requires_explicit_v02_profile(
+    tmp_path: Path,
+) -> None:
+    environment, _ = _environment(
+        tmp_path,
+        V01_PROFILE,
+    )
+    failure = _failure(
+        _mctx(
+            environment,
+            "portfolio",
+            "--as-of",
+            "2026-10-07",
+        )
+    )
+    assert failure["error_code"] == "portfolio_requires_v02"
+
+
 def test_bootstrap_requires_explicit_v02_profile(
     tmp_path: Path,
 ) -> None:
