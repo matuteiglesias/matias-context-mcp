@@ -1,7 +1,10 @@
-.PHONY: test check smoke smoke-v02
+.PHONY: test check bootstrap-test smoke smoke-v02
 
 test:
 	python3 -m pytest -q
+
+bootstrap-test:
+	python3 -m pytest -q tests/test_bootstrap_cli.py
 
 check:
 	python3 -m compileall -q src scripts tests
