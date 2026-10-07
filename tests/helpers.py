@@ -13,101 +13,50 @@ from matias_context_mcp.profile import (
 
 PROJECT_AGENDA_FIXTURES = {
     "accounting-family": {
-        "title": "Accounting + Family Strategy",
-        "posture": "CONVERGE",
-        "front_ids": ["fr_0036", "fr_0064", "fr_0147"],
-        "last_material_refresh": "2026-09-17",
-        "review_after_days": 30,
-        "review_due_on": "2026-10-17",
-        "declared_freshness": "CURRENT",
+        "review_due_on": "2026-10-20",
     },
     "base-de-datos-2c-2026": {
-        "title": "Base de Datos 2C 2026",
-        "posture": "DELIVER",
-        "front_ids": ["fr_0148", "fr_0145", "fr_0038"],
-        "last_material_refresh": "2026-09-17",
-        "review_after_days": 7,
-        "review_due_on": "2026-09-24",
-        "declared_freshness": "CURRENT",
+        "review_due_on": "2026-10-20",
     },
     "fcv-research": {
-        "title": "FCV Research",
-        "posture": "WAITING_EXTERNAL",
-        "front_ids": ["fr_0046", "fr_0047", "fr_0140", "fr_0141"],
-        "last_material_refresh": "2026-09-17",
-        "review_after_days": 30,
-        "review_due_on": "2026-10-17",
-        "declared_freshness": "CURRENT",
+        "review_due_on": "2026-10-20",
     },
     "job-search": {
-        "title": "Job Search",
-        "posture": "HARVEST",
-        "front_ids": ["fr_0034"],
-        "last_material_refresh": "2026-09-17",
-        "review_after_days": 14,
-        "review_due_on": "2026-10-01",
-        "declared_freshness": "CURRENT",
+        "review_due_on": "2026-10-20",
     },
     "lcd-institutional-surfaces": {
-        "title": "LCD Institutional Surfaces",
-        "posture": "HARVEST",
-        "front_ids": ["fr_0040", "fr_0041", "fr_0044", "fr_0144"],
-        "last_material_refresh": "2026-09-17",
-        "review_after_days": 30,
-        "review_due_on": "2026-10-17",
-        "declared_freshness": "CURRENT",
+        "review_due_on": "2026-10-20",
     },
     "media-monitor": {
-        "title": "Media Monitor",
-        "posture": "REPAIR",
-        "front_ids": ["fr_0023", "fr_0024", "fr_0025", "fr_0026"],
-        "last_material_refresh": "2026-09-17",
-        "review_after_days": 14,
         "review_due_on": "2026-10-01",
-        "declared_freshness": "CURRENT",
     },
     "poverty-ecosystem": {
-        "title": "Argentina Poverty Ecosystem",
-        "posture": "CONVERGE",
-        "front_ids": [
-            "fr_0087",
-            "fr_0088",
-            "fr_0090",
-            "fr_0091",
-            "fr_0092",
-            "fr_0093",
-            "fr_0094",
-            "fr_0095",
-            "fr_0099",
-        ],
-        "last_material_refresh": "2026-09-17",
-        "review_after_days": 21,
         "review_due_on": "2026-10-08",
-        "declared_freshness": "CURRENT",
     },
     "relationships-opportunities": {
-        "title": "Relationships & Opportunities",
-        "posture": "HARVEST",
-        "front_ids": ["fr_0052", "fr_0058"],
-        "last_material_refresh": "2026-09-17",
-        "review_after_days": 21,
-        "review_due_on": "2026-10-08",
-        "declared_freshness": "CURRENT",
+        "review_due_on": "2026-10-20",
     },
 }
+
 
 
 def _write_projects_index(root: Path) -> None:
     agendas: dict[str, dict[str, object]] = {}
     for agenda_id, metadata in PROJECT_AGENDA_FIXTURES.items():
         path = root / "estate" / "agendas" / f"{agenda_id}.md"
-        record = dict(metadata)
-        record["source_path"] = (
-            f"estate/agendas/{agenda_id}.md"
-        )
-        record["source_sha256"] = hashlib.sha256(
-            path.read_bytes()
-        ).hexdigest()
+        record = {
+            "title": f"Fixture {agenda_id}",
+            "posture": "FIXTURE",
+            "front_ids": [],
+            "last_material_refresh": "2026-10-01",
+            "review_after_days": 7,
+            "review_due_on": metadata["review_due_on"],
+            "declared_freshness": "CURRENT",
+            "source_path": f"estate/agendas/{agenda_id}.md",
+            "source_sha256": hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest(),
+        }
         agendas[agenda_id] = record
 
     index = root / "generated" / "project-agenda-index.json"
