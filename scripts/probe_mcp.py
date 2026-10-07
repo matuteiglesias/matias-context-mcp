@@ -16,10 +16,14 @@ from mcp.shared.exceptions import McpError
 
 CATALOG_URI = "matias-context://catalog/sources"
 DOCUMENT_URI = "matias-context://source/kb-contracts/document/manual-overview"
-REQUIRED_ENV = (
-    "MATIAS_CONTEXT_GATEWAY_CONFIG", "CONTEXT_ROUTING_ROOT",
-    "KB_CONTRACTS_ROOT", "KNOWLEDGE_INSPECT_ROOT", "KB_ARTIFACTS_ROOT",
+CONFIG_ENV = "MATIAS_CONTEXT_GATEWAY_CONFIG"
+BASE_SOURCE_ENV = (
+    "CONTEXT_ROUTING_ROOT",
+    "KB_CONTRACTS_ROOT",
+    "KNOWLEDGE_INSPECT_ROOT",
+    "KB_ARTIFACTS_ROOT",
 )
+OPTIONAL_SOURCE_ENV = ("PROJECTS_ROOT",)
 
 
 def arguments() -> argparse.Namespace:
@@ -27,6 +31,7 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts/mvp-evidence"))
     parser.add_argument("--knowledge-inspect-manifest-id", default=os.getenv("KNOWLEDGE_INSPECT_MANIFEST_ID"))
     parser.add_argument("--kb-artifacts-manifest-id", default=os.getenv("KB_ARTIFACTS_MANIFEST_ID"))
+    parser.add_argument("--expected-source-count", type=int, default=4)
     return parser.parse_args()
 
 
@@ -97,13 +102,23 @@ class Probe:
         return summary["status"] == "PASS"
 
 
+def source_root_environment() -> tuple[str, ...]:
+    return BASE_SOURCE_ENV + tuple(
+        name
+        for name in OPTIONAL_SOURCE_ENV
+        if os.getenv(name)
+    )
+
+
 def server_environment() -> dict[str, str]:
-    missing = [name for name in REQUIRED_ENV if not os.getenv(name)]
+    required = (CONFIG_ENV, *BASE_SOURCE_ENV)
+    missing = [name for name in required if not os.getenv(name)]
     if missing:
         raise RuntimeError("Missing required environment variables: " + ", ".join(missing))
     repository_src = str(Path(__file__).resolve().parents[1] / "src")
+    names = (CONFIG_ENV, *source_root_environment())
     return {
-        **{name: os.environ[name] for name in REQUIRED_ENV},
+        **{name: os.environ[name] for name in names},
         "PYTHONUNBUFFERED": "1",
         "PYTHONPATH": repository_src,
     }
@@ -153,8 +168,12 @@ async def run_session(args: argparse.Namespace, probe: Probe) -> None:
 
                 async def catalog_check() -> dict[str, Any]:
                     value = await read_json(session, CATALOG_URI)
-                    if value["data"]["count"] != 4:
-                        raise AssertionError("Catalog must contain four sources.")
+                    if value["data"]["count"] != args.expected_source_count:
+                        raise AssertionError(
+                            "Catalog source count mismatch: "
+                            f"expected {args.expected_source_count}, "
+                            f"got {value['data']['count']}."
+                        )
                     write_json(probe.output / "source-catalog-response.json", value)
                     return value
                 catalog = await probe.check("four-source catalog read", catalog_check)
@@ -201,7 +220,7 @@ async def run_session(args: argparse.Namespace, probe: Probe) -> None:
 
                 async def leakage_check() -> None:
                     serialized = json.dumps(probe.collected, sort_keys=True)
-                    for variable in REQUIRED_ENV[1:]:
+                    for variable in source_root_environment():
                         if os.environ[variable] in serialized:
                             raise AssertionError(f"Physical root leaked from {variable}.")
                 await probe.check("no configured root in client responses", leakage_check)
