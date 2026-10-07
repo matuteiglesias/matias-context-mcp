@@ -288,6 +288,27 @@ That is a 75% reduction in client/session orchestration, not a claim of fewer
 source reads, universal latency improvement, or better LLM reasoning. See
 [`docs/m6_adoption_experiment_2026-10-07.md`](docs/m6_adoption_experiment_2026-10-07.md).
 
+## Knowledge composition proof
+
+M7 validates one producer-to-selector-to-gateway path without expanding the MCP
+protocol surface:
+
+```text
+Knowledge Inspect governed summary
+→ producer-owned generic evidence JSONL
+→ KB Artifacts generic named-corpus selection
+→ selected-evidence run / path-safe manifest
+→ matias-context://manifest/kb-artifacts/<run-id>
+```
+
+The pinned CI proof preserves the producer adapter checksum into the selection
+manifest, creates one content-addressed selected-evidence identity, and confirms
+the MCP response leaks no producer checkout roots.
+
+The gateway does not expose the selected evidence body and does not perform
+selection or promotion. See
+[`docs/m7_knowledge_composition_2026-10-07.md`](docs/m7_knowledge_composition_2026-10-07.md).
+
 ## Architecture
 
 ```text

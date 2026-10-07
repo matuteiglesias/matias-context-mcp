@@ -169,6 +169,33 @@ As of 2026-10-07:
 * Projects Staff now adopts bootstrap as the preferred cross-repository
   orientation entrypoint when the v0.2 profile is available.
 
+## Current M7 knowledge-composition state
+
+As of 2026-10-07, the pinned cross-repository proof establishes one bounded
+composition seam:
+
+```text
+Knowledge Inspect summary_bus
+  -> producer-local:knowledge-inspect.evidence-jsonl@1
+  -> KB Artifacts generic named-corpus selection
+  -> path-safe selection manifest
+  -> existing MCP KB Artifacts manifest resource
+```
+
+Invariants:
+
+1. MCP does not parse Inspect-native artifacts or execute selection.
+2. The Inspect adapter must strip producer-local physical paths.
+3. The KB Artifacts composition path must use a named corpus profile so its
+   operational manifest contains logical source aliases rather than direct input
+   paths.
+4. Adapter-output SHA-256 must equal the selector manifest input SHA-256.
+5. MCP must return the already-safe manifest unchanged; do not add a second
+   sanitizer to compensate for an unsafe producer path.
+6. This proof covers `summary_bus/chunk_set_summary` only.
+7. Promotion/publication and selected-evidence body transport remain outside the
+   M7 proof.
+
 ## Required validation
 
 Run the canonical surfaces:

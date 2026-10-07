@@ -1,0 +1,45 @@
+name: M7 knowledge composition proof
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out MCP gateway
+        uses: actions/checkout@v4
+
+      - name: Check out pinned Knowledge Inspect producer
+        uses: actions/checkout@v4
+        with:
+          repository: matuteiglesias/knowledge-inspect
+          ref: 7832ed5f33df03e87b2b146cd51f798121c79dc8
+          path: .m7/knowledge-inspect
+
+      - name: Check out pinned KB Artifacts selector
+        uses: actions/checkout@v4
+        with:
+          repository: matuteiglesias/kb-artifacts
+          ref: 44ceeef3e7d851e1bb89c9d974100e0d3b4d6242
+          path: .m7/kb-artifacts
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install MCP gateway
+        run: python -m pip install -e '.[dev]'
+
+      - name: Prove Inspect to evidence to Artifacts to MCP
+        env:
+          KNOWLEDGE_INSPECT_ROOT: ${{ github.workspace }}/.m7/knowledge-inspect
+          KB_ARTIFACTS_ROOT: ${{ github.workspace }}/.m7/kb-artifacts
+        run: make knowledge-composition-proof

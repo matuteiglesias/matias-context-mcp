@@ -46,6 +46,7 @@ canonical_commands:
 - make check
 - make bootstrap-test
 - make adoption-experiment
+- make knowledge-composition-proof KNOWLEDGE_INSPECT_ROOT=/path/to/pinned/knowledge-inspect KB_ARTIFACTS_ROOT=/path/to/pinned/kb-artifacts
 - make smoke
 - make smoke-v02
 - python3 scripts/probe_mcp.py --output-dir artifacts/mvp-evidence
@@ -53,21 +54,26 @@ generated_paths:
 - artifacts/mvp-evidence/
 - artifacts/v02-evidence/
 - artifacts/m6-adoption/
+- artifacts/m7-knowledge-composition/
 verification:
-  status: trusted-v0.1-v0.2-bootstrap-adopted-ci
+  status: trusted-v0.1-v0.2-bootstrap-adopted-m7-composition-ci
   last_verified: '2026-10-07'
-  command: make check; make bootstrap-test; make smoke; make smoke-v02; make adoption-experiment
+  command: make check; make bootstrap-test; make smoke; make smoke-v02; make adoption-experiment; make knowledge-composition-proof
   proven:
   - PR #9 established the trusted four-source v0.1 startup boundary
   - PR #11 established the explicit five-source v0.2 profile while preserving exact v0.1 compatibility
   - PR #13 proves deterministic mctx bootstrap over ordinary real-MCP stdio reads with fail-closed Agenda/index SHA reconciliation
-  - PR #15 passes the bounded Media/Poverty adoption experiment with semantically equivalent control/treatment results
-  - PR #15 reduces client invocations and stdio sessions by 75 percent per case while intentionally leaving MCP resource reads unchanged
+  - PR #15 passes the bounded Media/Poverty adoption experiment while intentionally leaving MCP resource reads unchanged
+  - PR #17 pins Knowledge Inspect 7832ed5f33df03e87b2b146cd51f798121c79dc8 and KB Artifacts 44ceeef3e7d851e1bb89c9d974100e0d3b4d6242
+  - PR #17 proves summary_bus -> producer-owned generic evidence JSONL -> generic named-corpus selection -> path-safe KB Artifacts manifest -> existing MCP manifest resource
+  - PR #17 proves adapter-output SHA-256 continuity into the KB Artifacts manifest and one selected-evidence artifact identity
+  - PR #17 proves the MCP response is the verified KB Artifacts manifest and leaks neither producer checkout root
   - the provenance-pinned Context Routing read remains green through the same CI acceptance workflow
   unknowns:
   - live producer run availability remains request-local and is not enumerated at startup
-  - producer source-control provenance is declared and hashed but not remotely attested by the local gateway
-  - the public CI adoption experiment uses synthetic Projects fixture content; live private Projects mounting remains an operator-local acceptance surface
+  - producer source-control provenance is pinned by CI refs but not remotely attested by the local gateway at runtime
+  - M7 proves summary_bus/chunk_set_summary composition only; other Knowledge Inspect artifact families need separate producer adapters and consumer proofs
+  - M7 does not exercise selected-evidence promotion/publication and MCP does not expose selected-evidence bodies
 maintenance:
   cadence: quarterly
   next_review: '2026-11-01'
