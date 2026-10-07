@@ -1,4 +1,4 @@
-.PHONY: test check bootstrap-test smoke smoke-v02 adoption-experiment
+.PHONY: test check bootstrap-test smoke smoke-v02 adoption-experiment knowledge-composition-proof
 
 test:
 	python3 -m pytest -q
@@ -20,3 +20,11 @@ smoke-v02:
 
 adoption-experiment:
 	PYTHONPATH=src python3 scripts/adoption_experiment.py --output artifacts/m6-adoption/report.json
+
+knowledge-composition-proof:
+	@test -n "$(KNOWLEDGE_INSPECT_ROOT)" || (echo "KNOWLEDGE_INSPECT_ROOT is required" >&2; exit 2)
+	@test -n "$(KB_ARTIFACTS_ROOT)" || (echo "KB_ARTIFACTS_ROOT is required" >&2; exit 2)
+	PYTHONPATH=src python3 scripts/m7_knowledge_composition_proof.py \
+	  --knowledge-inspect-root "$(KNOWLEDGE_INSPECT_ROOT)" \
+	  --kb-artifacts-root "$(KB_ARTIFACTS_ROOT)" \
+	  --evidence-output artifacts/m7-knowledge-composition/report.json
