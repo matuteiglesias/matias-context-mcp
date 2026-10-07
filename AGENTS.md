@@ -4,7 +4,7 @@
 
 ## Mission
 
-Conclude the resource-only MCP v0.1 vertical slice without expanding it into a larger platform.
+Maintain the resource-only MCP v0.1 trust boundary without expanding it into a larger platform.
 
 The required path is:
 
@@ -107,13 +107,17 @@ belong in current reproducible issues with bounded acceptance criteria.
 
 Run the canonical surfaces:
 
+```bash
 make test
 make check
 make smoke
+```
 
 Verify:
 
+```bash
 git ls-files | grep -E '(^|/)(__pycache__/|.*\.py[co]$)'
+```
 
 returns nothing.
 
