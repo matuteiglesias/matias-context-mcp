@@ -197,9 +197,25 @@ mctx read \
   'matias-context://source/knowledge-inspect/document/architecture-freeze' \
   | jq -r '.data.text'
 
+# Deterministic estate orientation (v0.2 profile only)
+mctx bootstrap media-monitor --as-of 2026-10-07
+mctx bootstrap poverty-ecosystem --as-of 2026-10-07
+
 # Ordinary shell redirection remains available to the operator
 mctx read 'matias-context://catalog/sources' > catalog.json
 ```
+
+`mctx bootstrap` performs four ordinary resource reads inside one MCP stdio
+session: the Projects source descriptor, Agenda index, requested Agenda, and
+`STAFF.md`. It verifies the Agenda resource SHA-256 against the producer-owned
+index before composing `mctx.bootstrap@1`.
+
+`--as-of` is mandatory. This keeps freshness evaluation explicit and
+reproducible rather than depending on the machine clock. A review-due Agenda
+returns `orientation_state: refresh-needed`; the command does not rewrite the
+producer's semantic freshness declaration.
+
+See [the bootstrap contract](docs/mctx_bootstrap_contract_v1.md).
 
 Successful resource envelopes go to `stdout`; diagnostics, server logs, and structured failures go to `stderr`. The client itself does not create output files—the final example uses shell redirection explicitly.
 
@@ -277,6 +293,7 @@ The kernel does not import MCP SDK types and can be reused by a CLI or another t
 * local `stdio` before remote transport;
 * explicit versioned profiles before dynamic discovery;
 * exact v0.1 compatibility before additive v0.2 exposure;
+* deterministic client composition before new server capabilities;
 * producer-owned manifests before a universal gateway schema;
 * bounded reads before broad format support;
 * fail closed rather than guess;
