@@ -118,6 +118,26 @@ The normative source-profile and preflight changes are recorded in
 Do not resurrect the historical retrofit defect list as active work. New defects
 belong in current reproducible issues with bounded acceptance criteria.
 
+## Current v0.2 state
+
+As of 2026-10-07, PR #11 proves the explicit five-source profile without
+replacing v0.1:
+
+* v0.2 is selected only by its exact config/profile pair;
+* its first four source definitions are exactly the v0.1 source tuple;
+* Projects is the only additional source;
+* Projects exposes only STAFF, the Agenda guide/freshness contract, the
+  deterministic Agenda index, and the eight current Agenda pages;
+* the Agenda index is validated for producer-contract identity, record shape,
+  repo-relative source path, and SHA-256 syntax;
+* `make smoke-v02` performs a real stdio read of the Projects Agenda index;
+* `make smoke` independently remains the four-source v0.1 acceptance path;
+* no dynamic profile discovery or degraded v0.2 fallback exists.
+
+Cross-resource comparison of Agenda page SHA-256 values to the index is not an
+MCP-server responsibility in this phase; that belongs to deterministic client
+composition.
+
 ## Required validation
 
 Run the canonical surfaces:
@@ -157,6 +177,12 @@ artifacts/mvp-evidence/
   probe-output.txt
   server-stderr.txt
 
+artifacts/v02-evidence/
+  source-catalog-response.json
+  projects-agenda-index-response.json
+  probe-summary.json
+  probe-output.txt
+  server-stderr.txt
 
 Do not commit evidence containing physical roots or secrets.
 
