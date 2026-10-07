@@ -16,23 +16,10 @@ import yaml
 from matias_context_mcp.profile import FROZEN_PROFILE, PROFILE_ID
 
 
-def _write_sources(root: Path) -> tuple[dict[str, str], list[dict[str, str]]]:
-    environment: dict[str, str] = {}
-    mounts: list[dict[str, str]] = []
-
-    for source in FROZEN_PROFILE:
-        source_root = root / source.source_id
-        source_root.mkdir()
-        environment[source.root_env] = str(source_root)
-        mounts.append(
-            {
-                "source_id": source.source_id,
-                "root_env": source.root_env,
-            }
-        )
-
-        identity = source.identity
-        (source_root / "SYSTEM.yaml").write_text(
+def write_source_fixture(source, source_root: Path) -> None:
+    source_root.mkdir(parents=True, exist_ok=True)
+    identity = source.identity
+    (source_root / "SYSTEM.yaml").write_text(
             yaml.safe_dump(
                 {
                     "schema_version": identity.schema_version,
@@ -45,15 +32,17 @@ def _write_sources(root: Path) -> tuple[dict[str, str], list[dict[str, str]]]:
                 },
                 sort_keys=False,
             ),
-            encoding="utf-8",
-        )
+        encoding="utf-8",
+    )
 
-        for document in source.documents:
-            path = source_root / document.relative_path
-            path.parent.mkdir(parents=True, exist_ok=True)
+    for document in source.documents:
+        path = source_root / document.relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists():
+            continue
 
-            if document.codec == "context_routing_public_catalog":
-                path.write_text(
+        if document.codec == "context_routing_public_catalog":
+            path.write_text(
                     json.dumps(
                         {
                             "schema_id": "context_catalog",
@@ -63,15 +52,31 @@ def _write_sources(root: Path) -> tuple[dict[str, str], list[dict[str, str]]]:
                             "sources": [],
                         }
                     ),
-                    encoding="utf-8",
-                )
-            elif document.media_type == "application/json":
-                path.write_text("{}\n", encoding="utf-8")
-            else:
-                path.write_text(
-                    f"# Smoke fixture: {document.document_id}\n",
-                    encoding="utf-8",
-                )
+                encoding="utf-8",
+            )
+        elif document.media_type == "application/json":
+            path.write_text("{}\n", encoding="utf-8")
+        else:
+            path.write_text(
+                f"# Smoke fixture: {document.document_id}\n",
+                encoding="utf-8",
+            )
+
+
+def _write_sources(root: Path) -> tuple[dict[str, str], list[dict[str, str]]]:
+    environment: dict[str, str] = {}
+    mounts: list[dict[str, str]] = []
+
+    for source in FROZEN_PROFILE:
+        source_root = root / source.source_id
+        write_source_fixture(source, source_root)
+        environment[source.root_env] = str(source_root)
+        mounts.append(
+            {
+                "source_id": source.source_id,
+                "root_env": source.root_env,
+            }
+        )
 
     inspect_id = "2026-10-07T120000Z"
     inspect_manifest = (
