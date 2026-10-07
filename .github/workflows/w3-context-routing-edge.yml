@@ -41,6 +41,9 @@ jobs:
       - name: Run verified v0.2 stdio smoke
         run: make smoke-v02
 
+      - name: Run M6 bootstrap adoption experiment
+        run: make adoption-experiment
+
       - name: Prepare verified source mounts
         run: |
           PYTHONPATH=src python - <<'PY'
