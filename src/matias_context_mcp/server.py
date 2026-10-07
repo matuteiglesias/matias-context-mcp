@@ -27,6 +27,7 @@ from .config import (
 )
 from .errors import GatewayError
 from .kernel import ResourceKernel
+from .profile import V01_CONFIG_VERSION
 
 SERVER_NAME = "matias-context-gateway"
 SERVER_VERSION = "0.1.0"
@@ -85,8 +86,13 @@ def build_server(
                 name="configured-context-sources",
                 title="Configured context sources",
                 description=(
-                    f"The {len(registry.list_sources())} source identities "
-                    f"configured for {settings.config_version}."
+                    "The four source identities configured "
+                    "for gateway contract v0.1."
+                    if settings.config_version == V01_CONFIG_VERSION
+                    else (
+                        f"The {len(registry.list_sources())} source identities "
+                        f"configured for {settings.config_version}."
+                    )
                 ),
                 mimeType="application/json",
             )
