@@ -62,7 +62,7 @@ def build_source_descriptor(
         }
 
     return {
-        "contract_version": CONFIG_VERSION,
+        "contract_version": contract_version,
         "resource": {
             "uri": uri,
             "family": "source_descriptor",
@@ -71,7 +71,7 @@ def build_source_descriptor(
             "read_only": True,
             "provenance": {
                 "kind": "generated",
-                "profile_id": PROFILE_ID,
+                "profile_id": profile_id,
             },
         },
         "data": {
