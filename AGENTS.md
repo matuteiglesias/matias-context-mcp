@@ -37,6 +37,7 @@ Included:
 * source descriptors;
 * mapped context documents;
 * Projects / Project Agenda orientation documents in v0.2 only;
+* deterministic `mctx bootstrap` composition over those ordinary resources;
 * Knowledge Inspect manifests;
 * KB Artifacts manifests;
 * MCP over local `stdio`;
@@ -47,6 +48,7 @@ Included:
 Excluded:
 
 * tools;
+* server-side bootstrap tools or prompts;
 * prompts;
 * sampling;
 * elicitation;
@@ -135,8 +137,19 @@ replacing v0.1:
 * no dynamic profile discovery or degraded v0.2 fallback exists.
 
 Cross-resource comparison of Agenda page SHA-256 values to the index is not an
-MCP-server responsibility in this phase; that belongs to deterministic client
-composition.
+MCP-server responsibility. It is implemented by `mctx bootstrap` according to
+`docs/mctx_bootstrap_contract_v1.md`.
+
+## Bootstrap invariants
+
+1. `mctx bootstrap` uses ordinary MCP resource reads only.
+2. `--as-of` is explicit; do not introduce an implicit wall-clock fallback.
+3. The client must verify Agenda resource SHA-256 against the producer-owned
+   Agenda index before returning orientation.
+4. REVIEW_DUE is a client orientation state, not a rewrite of producer semantic
+   freshness.
+5. A bootstrap packet is orientation evidence, not permission to bypass
+   repository-local governance or runtime verification.
 
 ## Required validation
 
@@ -145,6 +158,7 @@ Run the canonical surfaces:
 ```bash
 make test
 make check
+make bootstrap-test
 make smoke
 make smoke-v02
 ```
