@@ -15,25 +15,21 @@ from matias_context_mcp.profile import (
     PROFILE_ID,
 )
 from matias_context_mcp.server import build_server
+from tests.helpers import provision_profile
 
 
 def _settings_and_environment(
     tmp_path: Path,
 ) -> tuple[Settings, dict[str, str]]:
-    mounts: list[SourceMount] = []
-    environment: dict[str, str] = {}
-
-    for profile_source in FROZEN_PROFILE:
-        root = tmp_path / profile_source.source_id
-        root.mkdir()
-
-        mounts.append(
-            SourceMount(
-                source_id=profile_source.source_id,
-                root_env=profile_source.root_env,
-            )
+    profile_environment, _, raw_mounts = provision_profile(tmp_path)
+    mounts = [
+        SourceMount(
+            source_id=mount["source_id"],
+            root_env=mount["root_env"],
         )
-        environment[profile_source.root_env] = str(root)
+        for mount in raw_mounts
+    ]
+    environment = profile_environment
 
     settings = Settings(
         config_path=tmp_path / "unused.json",
