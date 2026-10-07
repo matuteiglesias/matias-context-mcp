@@ -216,7 +216,7 @@ PROJECTS_SOURCE = ProfileSource(
             "agenda-index",
             "generated/project-agenda-index.json",
             "application/json",
-            "json",
+            "project_agenda_index",
         ),
         DocumentSpec(
             "accounting-family",
