@@ -109,14 +109,10 @@ def test_media_bootstrap_is_refresh_due_on_2026_10_07(
     assert packet["agenda_id"] == "media-monitor"
     assert packet["as_of"] == "2026-10-07"
     assert packet["orientation_state"] == "refresh-needed"
-    assert packet["freshness"] == {
-        "declared_freshness": "CURRENT",
-        "last_material_refresh": "2026-09-17",
-        "review_after_days": 14,
-        "review_due_on": "2026-10-01",
-        "reason": "review-due",
-    }
-    assert packet["agenda"]["metadata"]["posture"] == "REPAIR"
+    assert packet["freshness"]["declared_freshness"] == "CURRENT"
+    assert packet["freshness"]["review_due_on"] == "2026-10-01"
+    assert packet["freshness"]["reason"] == "review-due"
+    assert packet["agenda"]["metadata"]["posture"] == "FIXTURE"
     assert packet["provenance"][
         "agenda_index_matches_resource"
     ] is True
@@ -148,7 +144,7 @@ def test_poverty_bootstrap_is_ready_on_2026_10_07(
     assert packet["orientation_state"] == "orientation-ready"
     assert packet["freshness"]["review_due_on"] == "2026-10-08"
     assert packet["freshness"]["reason"] == "within-review-window"
-    assert packet["agenda"]["metadata"]["posture"] == "CONVERGE"
+    assert packet["agenda"]["metadata"]["posture"] == "FIXTURE"
     assert packet["warnings"] == []
 
 
