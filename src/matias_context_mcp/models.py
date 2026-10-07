@@ -106,7 +106,10 @@ class ResourceDocument:
     data: dict[str, Any]
     producer_id: str | None = None
 
-    def to_envelope(self) -> dict[str, Any]:
+    def to_envelope(
+        self,
+        contract_version: str = "mcp-context-gateway.v0.1",
+    ) -> dict[str, Any]:
         resource: dict[str, Any] = {
             "uri": self.uri,
             "family": self.family,
@@ -126,7 +129,7 @@ class ResourceDocument:
             resource["modified_at"] = self.modified_at
 
         return {
-            "contract_version": "mcp-context-gateway.v0.1",
+            "contract_version": contract_version,
             "resource": resource,
             "data": self.data,
         }

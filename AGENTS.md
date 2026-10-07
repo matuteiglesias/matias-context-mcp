@@ -4,7 +4,7 @@
 
 ## Mission
 
-Maintain the resource-only MCP v0.1 trust boundary without expanding it into a larger platform.
+Maintain the resource-only MCP gateway with exact v0.1 compatibility and an explicit, additive v0.2 estate-orientation profile, without expanding it into a larger platform.
 
 The required path is:
 
@@ -32,9 +32,11 @@ When implementation and contract disagree, report the disagreement. Do not silen
 
 Included:
 
+* explicit static v0.1/v0.2 profile selection;
 * source catalog;
 * source descriptors;
 * mapped context documents;
+* Projects / Project Agenda orientation documents in v0.2 only;
 * Knowledge Inspect manifests;
 * KB Artifacts manifests;
 * MCP over local `stdio`;
@@ -73,6 +75,19 @@ Excluded:
 11. Do not announce capabilities without registered behavior.
 12. Do not normalize producer IDs by lowercasing physical run IDs.
 
+## Profile compatibility rule
+
+`mcp-context-gateway.v0.1 + mvp-four-sources` remains the exact four-source
+compatibility profile. It must never require `PROJECTS_ROOT`, advertise Projects,
+or emit v0.2 contract provenance.
+
+`mcp-context-gateway.v0.2 + estate-orientation-v0.2` is an explicit opt-in
+profile. It is exactly v0.1's four source definitions plus the bounded Projects
+orientation source declared in `docs/mcp_context_gateway_contract_v0_2.md`.
+
+Do not add dynamic profile discovery or silently map one config/profile pair to
+another.
+
 ## Current trusted v0.1 state
 
 As of 2026-10-07, the resource-only v0.1 trust boundary is closed and was
@@ -103,6 +118,26 @@ The normative source-profile and preflight changes are recorded in
 Do not resurrect the historical retrofit defect list as active work. New defects
 belong in current reproducible issues with bounded acceptance criteria.
 
+## Current v0.2 state
+
+As of 2026-10-07, PR #11 proves the explicit five-source profile without
+replacing v0.1:
+
+* v0.2 is selected only by its exact config/profile pair;
+* its first four source definitions are exactly the v0.1 source tuple;
+* Projects is the only additional source;
+* Projects exposes only STAFF, the Agenda guide/freshness contract, the
+  deterministic Agenda index, and the eight current Agenda pages;
+* the Agenda index is validated for producer-contract identity, record shape,
+  repo-relative source path, and SHA-256 syntax;
+* `make smoke-v02` performs a real stdio read of the Projects Agenda index;
+* `make smoke` independently remains the four-source v0.1 acceptance path;
+* no dynamic profile discovery or degraded v0.2 fallback exists.
+
+Cross-resource comparison of Agenda page SHA-256 values to the index is not an
+MCP-server responsibility in this phase; that belongs to deterministic client
+composition.
+
 ## Required validation
 
 Run the canonical surfaces:
@@ -111,6 +146,7 @@ Run the canonical surfaces:
 make test
 make check
 make smoke
+make smoke-v02
 ```
 
 Verify:
@@ -141,6 +177,12 @@ artifacts/mvp-evidence/
   probe-output.txt
   server-stderr.txt
 
+artifacts/v02-evidence/
+  source-catalog-response.json
+  projects-agenda-index-response.json
+  probe-summary.json
+  probe-output.txt
+  server-stderr.txt
 
 Do not commit evidence containing physical roots or secrets.
 

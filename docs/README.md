@@ -36,12 +36,18 @@ The source repositories remain authoritative.
 
 **resource-only v0.1 MVP: CLOSED**
 
+**estate-orientation v0.2 profile: explicit opt-in**
+
+v0.1 remains the exact four-source compatibility profile. v0.2 adds Projects as
+one statically governed orientation source while preserving the resources-only
+transport surface.
+
 Working:
 
 * Python MCP server over local `stdio`;
 * MCP initialization and capability negotiation;
 * resources capability only;
-* generated four-source catalog;
+* exact four-source v0.1 catalog plus explicit five-source v0.2 catalog;
 * source descriptors;
 * governed context-document reads;
 * explicit logical-document mappings;
@@ -73,6 +79,7 @@ The client never supplies or receives a physical filesystem path.
 | KB Contracts      | Authoritative integration contracts  |
 | Knowledge Inspect | Run and manifest producer            |
 | KB Artifacts      | Governed evidence-selection producer |
+| Projects          | Estate / Project Agenda orientation   |
 
 ## Trust boundary
 
@@ -123,11 +130,14 @@ The server reads a server-owned JSON mount configuration:
 ```bash
 export MATIAS_CONTEXT_GATEWAY_CONFIG="$PWD/config/sources.example.json"
 
-export CONTEXT_ROUTING_ROOT="$HOME/repos/context"
+export CONTEXT_ROUTING_ROOT="$HOME/repos/context-routing"
 export KB_CONTRACTS_ROOT="$HOME/repos/kb-contracts"
 export KNOWLEDGE_INSPECT_ROOT="$HOME/repos/knowledge-inspect"
-export KB_ARTIFACTS_ROOT="$HOME/repos/gpt-digests"
+export KB_ARTIFACTS_ROOT="$HOME/repos/kb-artifacts"
 ```
+
+For explicit v0.2, use `config/sources.v0.2.example.json` and also set
+`PROJECTS_ROOT`. See [the v0.2 contract](mcp_context_gateway_contract_v0_2.md).
 
 These roots are operator configuration. They are not MCP client roots and cannot be changed by a client.
 
@@ -153,7 +163,7 @@ mctx read 'matias-context://source/kb-contracts'
 
 # Governed context document
 mctx read \
-  'matias-context://source/knowledge-inspect/document/artifact-surface'
+  'matias-context://source/knowledge-inspect/document/architecture-freeze'
 
 # Producer manifests (replace IDs with configured, existing run IDs)
 mctx read \
@@ -163,7 +173,7 @@ mctx read \
 
 # Extract the normalized document body
 mctx read \
-  'matias-context://source/knowledge-inspect/document/artifact-surface' \
+  'matias-context://source/knowledge-inspect/document/architecture-freeze' \
   | jq -r '.data.text'
 
 # Ordinary shell redirection remains available to the operator
@@ -206,10 +216,13 @@ python3 scripts/probe_mcp.py \
 
 The probe records machine-readable initialization, capabilities, listed resources, templates, successful reads and rejection evidence.
 
-## Tests
+## Verification
 
 ```bash
-python3 -m pytest -q
+make test
+make check
+make smoke
+make smoke-v02
 ```
 
 ## Architecture
@@ -219,7 +232,7 @@ Thin MCP facade
     |
     v
 Resource kernel
-    ├── frozen exposure profile
+    ├── explicit static exposure profile
     ├── source registry
     ├── URI resolver
     ├── policy gate
@@ -236,7 +249,7 @@ The kernel does not import MCP SDK types and can be reused by a CLI or another t
 
 * resources before tools;
 * local `stdio` before remote transport;
-* explicit mappings before dynamic discovery;
+* explicit versioned profiles before dynamic discovery;
 * producer-owned manifests before a universal gateway schema;
 * bounded reads before broad format support;
 * fail closed rather than guess;
@@ -246,7 +259,8 @@ The kernel does not import MCP SDK types and can be reused by a CLI or another t
 
 * KB Contracts: [https://github.com/matuteiglesias/kb-contracts](https://github.com/matuteiglesias/kb-contracts)
 * Knowledge Inspect: [https://github.com/matuteiglesias/knowledge-inspect](https://github.com/matuteiglesias/knowledge-inspect)
-* KB Artifacts: [https://github.com/matuteiglesias/gpt-digests](https://github.com/matuteiglesias/gpt-digests)
+* KB Artifacts: [https://github.com/matuteiglesias/kb-artifacts](https://github.com/matuteiglesias/kb-artifacts)
+* Projects: [https://github.com/matuteiglesias/projects](https://github.com/matuteiglesias/projects)
 
 ## Portfolio summary
 

@@ -5,17 +5,21 @@ from pathlib import Path
 
 import yaml
 
-from matias_context_mcp.profile import FROZEN_PROFILE
+from matias_context_mcp.profile import (
+    GatewayProfile,
+    V01_PROFILE,
+)
 
 
 def provision_profile(
     tmp_path: Path,
+    profile: GatewayProfile = V01_PROFILE,
 ) -> tuple[dict[str, str], dict[str, Path], list[dict[str, str]]]:
     environment: dict[str, str] = {}
     roots: dict[str, Path] = {}
     mounts: list[dict[str, str]] = []
 
-    for source in FROZEN_PROFILE:
+    for source in profile.sources:
         root = tmp_path / source.source_id
         root.mkdir()
         roots[source.source_id] = root
@@ -59,6 +63,18 @@ def provision_profile(
                             "sources": [],
                         }
                     ),
+                    encoding="utf-8",
+                )
+            elif document.document_id == "agenda-index":
+                path.write_text(
+                    json.dumps(
+                        {
+                            "contract": "context:project-agendas@1",
+                            "agenda_schema_version": 2,
+                            "agendas": {},
+                        }
+                    )
+                    + "\n",
                     encoding="utf-8",
                 )
             elif document.media_type == "application/json":

@@ -36,12 +36,19 @@ The source repositories remain authoritative.
 
 **resource-only v0.1 MVP: CLOSED**
 
+**estate-orientation v0.2 profile: explicit opt-in**
+
+v0.1 remains the four-source compatibility profile. v0.2 adds one statically
+governed Projects source for estate orientation without changing the MCP
+capability surface.
+
 Working:
 
 * Python MCP server over local `stdio`;
 * MCP initialization and capability negotiation;
 * resources capability only;
-* generated four-source catalog backed by verified mounted producer identities;
+* exact four-source v0.1 catalog backed by verified mounted producer identities;
+* explicit five-source v0.2 catalog adding the Projects orientation source;
 * source descriptors with declaration provenance;
 * fail-closed startup preflight of every mapped static document;
 * governed context-document reads;
@@ -74,6 +81,7 @@ The client never supplies or receives a physical filesystem path.
 | KB Contracts      | Authoritative integration contracts  |
 | Knowledge Inspect | Run and manifest producer            |
 | KB Artifacts      | Governed evidence-selection producer |
+| Projects          | Estate / Project Agenda orientation   |
 
 ## Trust boundary
 
@@ -130,6 +138,17 @@ export KNOWLEDGE_INSPECT_ROOT="$HOME/repos/knowledge-inspect"
 export KB_ARTIFACTS_ROOT="$HOME/repos/kb-artifacts"
 ```
 
+That remains the exact v0.1 configuration. To opt into the five-source v0.2
+profile instead:
+
+```bash
+export MATIAS_CONTEXT_GATEWAY_CONFIG="$PWD/config/sources.v0.2.example.json"
+export PROJECTS_ROOT="$HOME/repos/projects"
+```
+
+The v0.2 contract is documented in
+[`docs/mcp_context_gateway_contract_v0_2.md`](docs/mcp_context_gateway_contract_v0_2.md).
+
 These roots are operator configuration. They are not MCP client roots and cannot be changed by a client.
 
 Each root must present the exact governed `SYSTEM.yaml` identity pinned by the
@@ -165,7 +184,7 @@ mctx read 'matias-context://source/kb-contracts'
 
 # Governed context document
 mctx read \
-  'matias-context://source/knowledge-inspect/document/artifact-surface'
+  'matias-context://source/knowledge-inspect/document/architecture-freeze'
 
 # Producer manifests (replace IDs with configured, existing run IDs)
 mctx read \
@@ -175,7 +194,7 @@ mctx read \
 
 # Extract the normalized document body
 mctx read \
-  'matias-context://source/knowledge-inspect/document/artifact-surface' \
+  'matias-context://source/knowledge-inspect/document/architecture-freeze' \
   | jq -r '.data.text'
 
 # Ordinary shell redirection remains available to the operator
@@ -224,11 +243,13 @@ The probe records machine-readable initialization, capabilities, listed resource
 make test
 make check
 make smoke
+make smoke-v02
 ```
 
-`make smoke` provisions bounded verified fixture mounts and exercises the real
-MCP stdio session through the existing acceptance probe. It does not require
-live producer credentials or enumerate producer run histories.
+`make smoke` remains the exact four-source v0.1 acceptance path.
+`make smoke-v02` separately proves the five-source profile and reads the
+Projects Agenda index through a real MCP stdio session. Neither requires live
+producer credentials or enumerates producer run histories.
 
 ## Architecture
 
@@ -237,7 +258,7 @@ Thin MCP facade
     |
     v
 Resource kernel
-    ├── frozen exposure profile
+    ├── explicit static exposure profile
     ├── source registry
     ├── URI resolver
     ├── policy gate
@@ -254,7 +275,8 @@ The kernel does not import MCP SDK types and can be reused by a CLI or another t
 
 * resources before tools;
 * local `stdio` before remote transport;
-* explicit mappings before dynamic discovery;
+* explicit versioned profiles before dynamic discovery;
+* exact v0.1 compatibility before additive v0.2 exposure;
 * producer-owned manifests before a universal gateway schema;
 * bounded reads before broad format support;
 * fail closed rather than guess;
@@ -266,6 +288,7 @@ The kernel does not import MCP SDK types and can be reused by a CLI or another t
 * KB Contracts: [https://github.com/matuteiglesias/kb-contracts](https://github.com/matuteiglesias/kb-contracts)
 * Knowledge Inspect: [https://github.com/matuteiglesias/knowledge-inspect](https://github.com/matuteiglesias/knowledge-inspect)
 * KB Artifacts: [https://github.com/matuteiglesias/kb-artifacts](https://github.com/matuteiglesias/kb-artifacts)
+* Projects: [https://github.com/matuteiglesias/projects](https://github.com/matuteiglesias/projects)
 
 ## Portfolio summary
 

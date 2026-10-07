@@ -1,0 +1,26 @@
+{
+  "config_version": "mcp-context-gateway.v0.2",
+  "profile": "estate-orientation-v0.2",
+  "sources": [
+    {
+      "source_id": "context-routing",
+      "root_env": "CONTEXT_ROUTING_ROOT"
+    },
+    {
+      "source_id": "kb-contracts",
+      "root_env": "KB_CONTRACTS_ROOT"
+    },
+    {
+      "source_id": "knowledge-inspect",
+      "root_env": "KNOWLEDGE_INSPECT_ROOT"
+    },
+    {
+      "source_id": "kb-artifacts",
+      "root_env": "KB_ARTIFACTS_ROOT"
+    },
+    {
+      "source_id": "projects",
+      "root_env": "PROJECTS_ROOT"
+    }
+  ]
+}

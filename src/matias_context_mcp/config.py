@@ -1,4 +1,4 @@
-"""Strict loading and trusted startup preflight for the v0.1 profile."""
+"""Strict loading and trusted startup preflight for static gateway profiles."""
 
 from __future__ import annotations
 
@@ -16,14 +16,12 @@ from .errors import ConfigurationError, GatewayError
 from .kernel import ResourceKernel
 from .models import AuthorizedRead, SourceSpec, VerifiedSourceIdentity
 from .profile import (
-    CONFIG_VERSION,
-    FROZEN_PROFILE,
     HARD_MAX_BYTES,
-    PROFILE_BY_SOURCE,
-    PROFILE_ID,
     SUPPORTED_EXTENSIONS,
     SYSTEM_DECLARATION_MAX_BYTES,
+    GatewayProfile,
     ProfileSource,
+    get_profile,
 )
 from .registry import SourceRegistry
 
@@ -87,6 +85,29 @@ def _read_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def _selected_profile(
+    config_version: object,
+    profile_id: object,
+) -> GatewayProfile:
+    if (
+        not isinstance(config_version, str)
+        or not isinstance(profile_id, str)
+    ):
+        raise ConfigurationError(
+            "Configuration version and profile must be strings."
+        )
+
+    selected = get_profile(
+        config_version,
+        profile_id,
+    )
+    if selected is None:
+        raise ConfigurationError(
+            "Unsupported configuration/profile combination."
+        )
+    return selected
+
+
 def load_settings(
     config_path: str | Path | None = None,
     *,
@@ -126,15 +147,10 @@ def load_settings(
             "Configuration contains unsupported fields."
         )
 
-    if payload.get("config_version") != CONFIG_VERSION:
-        raise ConfigurationError(
-            "Unsupported configuration version."
-        )
-
-    if payload.get("profile") != PROFILE_ID:
-        raise ConfigurationError(
-            "Unsupported source exposure profile."
-        )
+    profile = _selected_profile(
+        payload.get("config_version"),
+        payload.get("profile"),
+    )
 
     raw_sources = payload.get("sources")
     if not isinstance(raw_sources, list):
@@ -179,15 +195,16 @@ def load_settings(
             )
         )
 
-    expected_ids = set(PROFILE_BY_SOURCE)
+    expected_by_source = profile.by_source
+    expected_ids = set(expected_by_source)
     if seen != expected_ids:
         raise ConfigurationError(
             "Configuration must mount exactly "
-            "the frozen four-source profile."
+            "the selected static exposure profile."
         )
 
     for mount in mounts:
-        expected = PROFILE_BY_SOURCE[mount.source_id]
+        expected = expected_by_source[mount.source_id]
 
         if mount.root_env != expected.root_env:
             raise ConfigurationError(
@@ -197,8 +214,8 @@ def load_settings(
 
     return Settings(
         config_path=path,
-        config_version=CONFIG_VERSION,
-        profile=PROFILE_ID,
+        config_version=profile.config_version,
+        profile=profile.profile_id,
         sources=tuple(mounts),
     )
 
@@ -305,7 +322,7 @@ def _read_source_identity(
     if mismatches:
         raise ConfigurationError(
             "Mounted source identity does not match "
-            "the frozen profile.",
+            "the selected static profile.",
             details={
                 "source_id": source.source_id,
                 "mismatched_fields": mismatches,
@@ -353,8 +370,17 @@ def _preflight_manifest_locator(source: SourceSpec) -> None:
         )
 
 
-def _preflight_documents(registry: SourceRegistry) -> None:
-    kernel = ResourceKernel(registry)
+def _preflight_documents(
+    registry: SourceRegistry,
+    *,
+    contract_version: str,
+    profile_id: str,
+) -> None:
+    kernel = ResourceKernel(
+        registry,
+        contract_version=contract_version,
+        profile_id=profile_id,
+    )
 
     for source in registry.list_sources():
         _preflight_manifest_locator(source)
@@ -383,6 +409,10 @@ def build_registry(
     environ: Mapping[str, str] | None = None,
 ) -> SourceRegistry:
     env = os.environ if environ is None else environ
+    selected_profile = _selected_profile(
+        settings.config_version,
+        settings.profile,
+    )
     mount_by_id = {
         mount.source_id: mount
         for mount in settings.sources
@@ -390,7 +420,7 @@ def build_registry(
 
     specs: list[SourceSpec] = []
 
-    for profile_source in FROZEN_PROFILE:
+    for profile_source in selected_profile.sources:
         mount = mount_by_id[profile_source.source_id]
         root_value = env.get(mount.root_env)
 
@@ -423,7 +453,7 @@ def build_registry(
         for document in profile_source.documents:
             if document.document_id in document_ids:
                 raise ConfigurationError(
-                    "Duplicate document ID in frozen profile."
+                    "Duplicate document ID in selected profile."
                 )
 
             document_ids.add(document.document_id)
@@ -479,7 +509,11 @@ def build_registry(
         )
 
     registry = SourceRegistry(specs)
-    _preflight_documents(registry)
+    _preflight_documents(
+        registry,
+        contract_version=selected_profile.config_version,
+        profile_id=selected_profile.profile_id,
+    )
     return registry
 
 
