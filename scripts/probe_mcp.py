@@ -103,21 +103,28 @@ class Probe:
         return summary["status"] == "PASS"
 
 
-def source_root_environment() -> tuple[str, ...]:
-    return BASE_SOURCE_ENV + tuple(
-        name
-        for name in OPTIONAL_SOURCE_ENV
-        if os.getenv(name)
+def source_root_environment(
+    include_projects: bool,
+) -> tuple[str, ...]:
+    return BASE_SOURCE_ENV + (
+        OPTIONAL_SOURCE_ENV
+        if include_projects
+        else ()
     )
 
 
-def server_environment() -> dict[str, str]:
+def server_environment(
+    include_projects: bool,
+) -> dict[str, str]:
     required = (CONFIG_ENV, *BASE_SOURCE_ENV)
     missing = [name for name in required if not os.getenv(name)]
     if missing:
         raise RuntimeError("Missing required environment variables: " + ", ".join(missing))
     repository_src = str(Path(__file__).resolve().parents[1] / "src")
-    names = (CONFIG_ENV, *source_root_environment())
+    source_names = source_root_environment(include_projects)
+    if include_projects and not os.getenv("PROJECTS_ROOT"):
+        raise RuntimeError("Missing required environment variables: PROJECTS_ROOT")
+    names = (CONFIG_ENV, *source_names)
     return {
         **{name: os.environ[name] for name in names},
         "PYTHONUNBUFFERED": "1",
@@ -129,7 +136,9 @@ async def run_session(args: argparse.Namespace, probe: Probe) -> None:
     params = StdioServerParameters(
         command=sys.executable,
         args=["-m", "matias_context_mcp"],
-        env=server_environment(),
+        env=server_environment(
+            args.expected_source_count >= 5,
+        ),
         cwd=Path(__file__).resolve().parents[1],
     )
     with (probe.output / "server-stderr.txt").open("w", encoding="utf-8") as errlog:
@@ -237,7 +246,9 @@ async def run_session(args: argparse.Namespace, probe: Probe) -> None:
 
                 async def leakage_check() -> None:
                     serialized = json.dumps(probe.collected, sort_keys=True)
-                    for variable in source_root_environment():
+                    for variable in source_root_environment(
+                        args.expected_source_count >= 5
+                    ):
                         if os.environ[variable] in serialized:
                             raise AssertionError(f"Physical root leaked from {variable}.")
                 await probe.check("no configured root in client responses", leakage_check)
