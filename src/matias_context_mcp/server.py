@@ -27,7 +27,6 @@ from .config import (
 )
 from .errors import GatewayError
 from .kernel import ResourceKernel
-from .profile import CONFIG_VERSION
 
 SERVER_NAME = "matias-context-gateway"
 SERVER_VERSION = "0.1.0"
@@ -66,7 +65,11 @@ def build_server(
         settings,
         environ=environ,
     )
-    kernel = ResourceKernel(registry)
+    kernel = ResourceKernel(
+        registry,
+        contract_version=settings.config_version,
+        profile_id=settings.profile,
+    )
 
     server = Server(
         SERVER_NAME,
@@ -82,8 +85,8 @@ def build_server(
                 name="configured-context-sources",
                 title="Configured context sources",
                 description=(
-                    "The four source identities configured "
-                    "for gateway contract v0.1."
+                    f"The {len(registry.list_sources())} source identities "
+                    f"configured for {settings.config_version}."
                 ),
                 mimeType="application/json",
             )
@@ -159,7 +162,7 @@ def build_server(
                 ),
                 mime_type="application/json",
                 meta={
-                    "contract_version": CONFIG_VERSION,
+                    "contract_version": settings.config_version,
                     "resource_family":
                         envelope["resource"]["family"],
                 },
