@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from .profile import CONFIG_VERSION, PROFILE_ID
 from .models import VerifiedSourceIdentity
 from .registry import SourceRegistry
 
@@ -13,6 +12,8 @@ def build_source_catalog(
     registry: SourceRegistry,
     *,
     uri: str,
+    contract_version: str,
+    profile_id: str,
 ) -> dict[str, Any]:
     sources = [
         _catalog_source(source)
@@ -20,14 +21,14 @@ def build_source_catalog(
     ]
 
     return {
-        "contract_version": CONFIG_VERSION,
+        "contract_version": contract_version,
         "resource": {
             "uri": uri,
             "family": "source_catalog",
             "read_only": True,
             "provenance": {
                 "kind": "generated",
-                "profile_id": PROFILE_ID,
+                "profile_id": profile_id,
             },
         },
         "data": {
@@ -42,6 +43,8 @@ def build_source_descriptor(
     *,
     source_id: str,
     uri: str,
+    contract_version: str,
+    profile_id: str,
 ) -> dict[str, Any]:
     source = registry.get_source(
         source_id,
