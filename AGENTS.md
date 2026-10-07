@@ -4,7 +4,7 @@
 
 ## Mission
 
-Maintain the resource-only MCP v0.1 trust boundary without expanding it into a larger platform.
+Maintain the resource-only MCP gateway with exact v0.1 compatibility and an explicit, additive v0.2 estate-orientation profile, without expanding it into a larger platform.
 
 The required path is:
 
@@ -32,9 +32,11 @@ When implementation and contract disagree, report the disagreement. Do not silen
 
 Included:
 
+* explicit static v0.1/v0.2 profile selection;
 * source catalog;
 * source descriptors;
 * mapped context documents;
+* Projects / Project Agenda orientation documents in v0.2 only;
 * Knowledge Inspect manifests;
 * KB Artifacts manifests;
 * MCP over local `stdio`;
@@ -72,6 +74,19 @@ Excluded:
 10. Do not add a second manifest-reading path.
 11. Do not announce capabilities without registered behavior.
 12. Do not normalize producer IDs by lowercasing physical run IDs.
+
+## Profile compatibility rule
+
+`mcp-context-gateway.v0.1 + mvp-four-sources` remains the exact four-source
+compatibility profile. It must never require `PROJECTS_ROOT`, advertise Projects,
+or emit v0.2 contract provenance.
+
+`mcp-context-gateway.v0.2 + estate-orientation-v0.2` is an explicit opt-in
+profile. It is exactly v0.1's four source definitions plus the bounded Projects
+orientation source declared in `docs/mcp_context_gateway_contract_v0_2.md`.
+
+Do not add dynamic profile discovery or silently map one config/profile pair to
+another.
 
 ## Current trusted v0.1 state
 
@@ -111,6 +126,7 @@ Run the canonical surfaces:
 make test
 make check
 make smoke
+make smoke-v02
 ```
 
 Verify:
