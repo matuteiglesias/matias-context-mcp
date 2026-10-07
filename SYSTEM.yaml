@@ -43,6 +43,7 @@ canonical_commands:
 - python3 scripts/probe_mcp.py --output-dir artifacts/mvp-evidence
 generated_paths:
 - artifacts/mvp-evidence/
+- artifacts/v02-evidence/
 verification:
   status: trusted-v0.1-ci
   last_verified: '2026-10-07'
