@@ -50,6 +50,7 @@ Working:
 * exact four-source v0.1 catalog backed by verified mounted producer identities;
 * explicit five-source v0.2 catalog adding the Projects orientation source;
 * deterministic `mctx bootstrap` orientation packets with Agenda/index SHA reconciliation;
+* deterministic `mctx portfolio` freshness-attention packets over the Agenda index;
 * source descriptors with declaration provenance;
 * fail-closed startup preflight of every mapped static document;
 * governed context-document reads;
@@ -201,6 +202,7 @@ mctx read \
 # Deterministic estate orientation (v0.2 profile only)
 mctx bootstrap media-monitor --as-of 2026-10-07
 mctx bootstrap poverty-ecosystem --as-of 2026-10-07
+mctx portfolio --as-of 2026-10-07
 
 # Ordinary shell redirection remains available to the operator
 mctx read 'matias-context://catalog/sources' > catalog.json
@@ -217,6 +219,13 @@ returns `orientation_state: refresh-needed`; the command does not rewrite the
 producer's semantic freshness declaration.
 
 See [the bootstrap contract](docs/mctx_bootstrap_contract_v1.md).
+
+`mctx portfolio` reads only the verified Projects source descriptor and Agenda
+index. It derives the same review-due semantics for every Agenda and orders the
+result for freshness attention; this is explicitly not a project-priority
+ranking. Expand an individual room with `mctx bootstrap` only when the portfolio
+packet shows it deserves attention. See
+[the portfolio contract](docs/mctx_portfolio_contract_v1.md).
 
 Successful resource envelopes go to `stdout`; diagnostics, server logs, and structured failures go to `stderr`. The client itself does not create output files—the final example uses shell redirection explicitly.
 

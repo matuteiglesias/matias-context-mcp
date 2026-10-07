@@ -19,6 +19,7 @@ from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
 
 BOOTSTRAP_CONTRACT = "mctx.bootstrap@1"
+PORTFOLIO_CONTRACT = "mctx.portfolio@1"
 PROJECTS_SOURCE_URI = "matias-context://source/projects"
 AGENDA_INDEX_URI = "matias-context://source/projects/document/agenda-index"
 STAFF_URI = "matias-context://source/projects/document/staff-operating-model"
@@ -66,6 +67,13 @@ def _arguments(argv: Sequence[str] | None) -> argparse.Namespace:
     bootstrap = commands.add_parser("bootstrap")
     bootstrap.add_argument("agenda_id", type=_agenda_id)
     bootstrap.add_argument(
+        "--as-of",
+        required=True,
+        type=_as_of,
+        help="Explicit orientation date (YYYY-MM-DD).",
+    )
+    portfolio = commands.add_parser("portfolio")
+    portfolio.add_argument(
         "--as-of",
         required=True,
         type=_as_of,
@@ -126,6 +134,37 @@ def _mcp_error_code(error: McpError) -> str | None:
         if isinstance(value, str):
             return value
     return None
+
+
+def _orientation(
+    record: dict[str, Any],
+    *,
+    agenda_id: str,
+    as_of: str,
+) -> tuple[str, str, date, int]:
+    declared = record.get("declared_freshness")
+    due_value = record.get("review_due_on")
+    try:
+        due = date.fromisoformat(str(due_value))
+        observed = date.fromisoformat(as_of)
+    except ValueError as exc:
+        raise _bootstrap_error(
+            "invalid_agenda_freshness",
+            "Agenda review metadata is not a valid ISO date.",
+            agenda_id=agenda_id,
+        ) from exc
+
+    if declared == "STALE":
+        orientation_state = "refresh-needed"
+        reason = "declared-stale"
+    elif observed >= due:
+        orientation_state = "refresh-needed"
+        reason = "review-due"
+    else:
+        orientation_state = "orientation-ready"
+        reason = "within-review-window"
+
+    return orientation_state, reason, due, (observed - due).days
 
 
 async def _bootstrap(
@@ -219,26 +258,11 @@ async def _bootstrap(
         )
 
     declared = record.get("declared_freshness")
-    due_value = record.get("review_due_on")
-    try:
-        due = date.fromisoformat(str(due_value))
-        observed = date.fromisoformat(as_of)
-    except ValueError as exc:
-        raise _bootstrap_error(
-            "invalid_agenda_freshness",
-            "Agenda review metadata is not a valid ISO date.",
-            agenda_id=agenda_id,
-        ) from exc
-
-    if declared == "STALE":
-        orientation_state = "refresh-needed"
-        reason = "declared-stale"
-    elif observed >= due:
-        orientation_state = "refresh-needed"
-        reason = "review-due"
-    else:
-        orientation_state = "orientation-ready"
-        reason = "within-review-window"
+    orientation_state, reason, due, _ = _orientation(
+        record,
+        agenda_id=agenda_id,
+        as_of=as_of,
+    )
 
     identity = source_data.get("identity")
     if not isinstance(identity, dict):
@@ -330,6 +354,148 @@ async def _bootstrap(
     }
 
 
+async def _portfolio(
+    session: ClientSession,
+    *,
+    as_of: str,
+) -> dict[str, Any]:
+    try:
+        source = await _read_json(
+            session,
+            PROJECTS_SOURCE_URI,
+        )
+    except McpError as exc:
+        if _mcp_error_code(exc) == "unknown_source":
+            raise _bootstrap_error(
+                "portfolio_requires_v02",
+                "Portfolio requires the explicit estate-orientation v0.2 profile.",
+                required_source="projects",
+            ) from exc
+        raise
+
+    index = await _read_json(session, AGENDA_INDEX_URI)
+
+    source_data = source.get("data")
+    if (
+        not isinstance(source_data, dict)
+        or source_data.get("source_id") != "projects"
+    ):
+        raise _bootstrap_error(
+            "invalid_portfolio_source",
+            "Projects source descriptor is incompatible with portfolio.",
+        )
+
+    index_payload = index.get("data", {}).get("json")
+    if not isinstance(index_payload, dict):
+        raise _bootstrap_error(
+            "invalid_agenda_index",
+            "Projects Agenda index is missing normalized JSON.",
+        )
+
+    agendas = index_payload.get("agendas")
+    if not isinstance(agendas, dict):
+        raise _bootstrap_error(
+            "invalid_agenda_index",
+            "Projects Agenda index does not contain an agendas mapping.",
+        )
+
+    identity = source_data.get("identity")
+    if not isinstance(identity, dict):
+        raise _bootstrap_error(
+            "invalid_portfolio_source",
+            "Projects source descriptor is missing verified identity.",
+        )
+
+    rows: list[dict[str, Any]] = []
+    for agenda_id, record in agendas.items():
+        if (
+            not isinstance(agenda_id, str)
+            or not _AGENDA_ID.fullmatch(agenda_id)
+            or not isinstance(record, dict)
+        ):
+            raise _bootstrap_error(
+                "invalid_agenda_index",
+                "Projects Agenda index contains an invalid Agenda record.",
+            )
+
+        orientation_state, reason, due, delta_days = _orientation(
+            record,
+            agenda_id=agenda_id,
+            as_of=as_of,
+        )
+        rows.append(
+            {
+                "agenda_id": agenda_id,
+                "title": record.get("title"),
+                "posture": record.get("posture"),
+                "declared_freshness": record.get("declared_freshness"),
+                "last_material_refresh": record.get("last_material_refresh"),
+                "review_due_on": due.isoformat(),
+                "review_delta_days": delta_days,
+                "orientation_state": orientation_state,
+                "reason": reason,
+                "source_sha256": record.get("source_sha256"),
+            }
+        )
+
+    reason_rank = {
+        "declared-stale": 0,
+        "review-due": 1,
+        "within-review-window": 2,
+    }
+    rows.sort(
+        key=lambda item: (
+            0 if item["orientation_state"] == "refresh-needed" else 1,
+            reason_rank[item["reason"]],
+            item["review_due_on"],
+            item["agenda_id"],
+        )
+    )
+
+    refresh_needed = sum(
+        item["orientation_state"] == "refresh-needed"
+        for item in rows
+    )
+    orientation_ready = len(rows) - refresh_needed
+
+    return {
+        "contract": PORTFOLIO_CONTRACT,
+        "as_of": as_of,
+        "summary": {
+            "total": len(rows),
+            "refresh_needed": refresh_needed,
+            "orientation_ready": orientation_ready,
+        },
+        "ordering": {
+            "basis": "freshness-attention",
+            "project_priority": False,
+        },
+        "agendas": rows,
+        "source": {
+            "source_id": "projects",
+            "identity": identity,
+        },
+        "provenance": {
+            "resources": [
+                {
+                    "uri": PROJECTS_SOURCE_URI,
+                    "kind": "source_descriptor",
+                    "declaration_sha256": identity.get(
+                        "declaration_sha256"
+                    ),
+                },
+                {
+                    "uri": AGENDA_INDEX_URI,
+                    "kind": "agenda_index",
+                    "sha256": index.get(
+                        "resource", {}
+                    ).get("sha256"),
+                },
+            ],
+        },
+    }
+
+
 async def _run(args: argparse.Namespace) -> Any:
     async with stdio_client(
         _server_parameters(),
@@ -347,6 +513,11 @@ async def _run(args: argparse.Namespace) -> Any:
                 return await _bootstrap(
                     session,
                     agenda_id=args.agenda_id,
+                    as_of=args.as_of,
+                )
+            if args.operation == "portfolio":
+                return await _portfolio(
+                    session,
                     as_of=args.as_of,
                 )
             return await _read_json(session, args.uri)
@@ -413,7 +584,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "message": (
                         "Use: mctx list | mctx templates | "
                         "mctx read URI | "
-                        "mctx bootstrap AGENDA --as-of YYYY-MM-DD"
+                        "mctx bootstrap AGENDA --as-of YYYY-MM-DD | "
+                        "mctx portfolio --as-of YYYY-MM-DD"
                     ),
                     "details": {},
                 }
