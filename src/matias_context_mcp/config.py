@@ -370,6 +370,37 @@ def _preflight_manifest_locator(source: SourceSpec) -> None:
         )
 
 
+def _preflight_selected_evidence_locator(source: SourceSpec) -> None:
+    profile = source.selected_evidence_profile
+    if profile is None:
+        return
+
+    probe = profile.locator.replace(
+        "{manifest_id}",
+        "preflight",
+    )
+    candidate = (
+        source.root
+        .joinpath(*PurePosixPath(probe).parts)
+        .resolve(strict=False)
+    )
+
+    if (
+        candidate == source.root
+        or not _is_descendant(candidate, source.root)
+    ):
+        raise ConfigurationError(
+            "Selected-evidence locator resolves outside its source root.",
+            details={"source_id": source.source_id},
+        )
+
+    if candidate.suffix.lower() not in source.allowed_extensions:
+        raise ConfigurationError(
+            "Selected-evidence locator uses an unsupported extension.",
+            details={"source_id": source.source_id},
+        )
+
+
 def _preflight_documents(
     registry: SourceRegistry,
     *,
@@ -384,6 +415,7 @@ def _preflight_documents(
 
     for source in registry.list_sources():
         _preflight_manifest_locator(source)
+        _preflight_selected_evidence_locator(source)
 
         for document in source.documents:
             uri = (
@@ -467,6 +499,9 @@ def build_registry(
             )
 
         manifest_profile = profile_source.manifest_profile
+        selected_evidence_profile = (
+            profile_source.selected_evidence_profile
+        )
 
         if manifest_profile is not None:
             locator_probe = manifest_profile.locator.replace(
@@ -493,6 +528,42 @@ def build_registry(
                     "one manifest_id slot."
                 )
 
+        if selected_evidence_profile is not None:
+            selected_probe = (
+                selected_evidence_profile.locator.replace(
+                    "{manifest_id}",
+                    "probe",
+                )
+            )
+            _validate_relative_path(
+                selected_probe,
+                label=(
+                    f"{profile_source.source_id}/"
+                    "selected-evidence"
+                ),
+            )
+            if (
+                selected_evidence_profile.locator.count(
+                    "{manifest_id}"
+                )
+                != 1
+            ):
+                raise ConfigurationError(
+                    "Selected-evidence locator must contain exactly "
+                    "one manifest_id slot."
+                )
+            if manifest_profile is None:
+                raise ConfigurationError(
+                    "Selected-evidence profile requires a manifest profile."
+                )
+            if (
+                selected_evidence_profile.producer_id
+                != manifest_profile.producer_id
+            ):
+                raise ConfigurationError(
+                    "Selected-evidence producer must match manifest producer."
+                )
+
         specs.append(
             SourceSpec(
                 source_id=profile_source.source_id,
@@ -504,6 +575,7 @@ def build_registry(
                 maximum_bytes=HARD_MAX_BYTES,
                 allowed_extensions=SUPPORTED_EXTENSIONS,
                 manifest_profile=manifest_profile,
+                selected_evidence_profile=selected_evidence_profile,
                 identity=identity,
             )
         )
