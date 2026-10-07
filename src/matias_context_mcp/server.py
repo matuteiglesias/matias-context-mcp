@@ -27,7 +27,7 @@ from .config import (
 )
 from .errors import GatewayError
 from .kernel import ResourceKernel
-from .profile import V01_CONFIG_VERSION
+from .profile import V01_CONFIG_VERSION, V03_CONFIG_VERSION
 
 SERVER_NAME = "matias-context-gateway"
 SERVER_VERSION = "0.1.0"
@@ -40,6 +40,10 @@ DOCUMENT_TEMPLATE = (
 )
 MANIFEST_TEMPLATE = (
     "matias-context://manifest/"
+    "{producer_id}/{manifest_id}"
+)
+SELECTED_EVIDENCE_TEMPLATE = (
+    "matias-context://selected/"
     "{producer_id}/{manifest_id}"
 )
 
@@ -101,7 +105,7 @@ def build_server(
     @server.list_resource_templates()
     async def list_resource_templates(
     ) -> list[types.ResourceTemplate]:
-        return [
+        templates = [
             types.ResourceTemplate(
                 uriTemplate=SOURCE_TEMPLATE,
                 name="source-descriptor",
@@ -133,6 +137,21 @@ def build_server(
                 mimeType="application/json",
             ),
         ]
+        if settings.config_version == V03_CONFIG_VERSION:
+            templates.append(
+                types.ResourceTemplate(
+                    uriTemplate=SELECTED_EVIDENCE_TEMPLATE,
+                    name="selected-evidence",
+                    title="Manifest-bound selected evidence",
+                    description=(
+                        "The selected.jsonl body for a known KB Artifacts "
+                        "run, returned only when its SHA-256 matches the "
+                        "validated selection manifest."
+                    ),
+                    mimeType="application/json",
+                )
+            )
+        return templates
 
     @server.read_resource()
     async def read_resource(
