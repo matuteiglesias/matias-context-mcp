@@ -71,17 +71,24 @@ Before MCP startup, the gateway:
 5. validates fixed manifest locator containment for the existing manifest
    producers without enumerating run histories.
 
-A missing Projects checkout, wrong Projects identity, stale/missing Agenda index,
-or missing mapped Agenda file prevents v0.2 startup. It has no degraded
-four-source fallback.
+A missing Projects checkout, wrong Projects identity, missing/malformed Agenda
+index, unsupported Agenda-index contract identity, or missing mapped Agenda file
+prevents v0.2 startup. It has no degraded four-source fallback.
+
+Startup validates the Agenda index's producer contract identity, record shape,
+repo-relative source path and SHA-256 syntax. It does not compare each recorded
+source hash with the concurrently mounted Agenda page. That cross-resource
+consistency check remains a producer/client integrity responsibility and is
+intended for the later deterministic bootstrap composition.
 
 ## Agenda semantics
 
 `generated/project-agenda-index.json` is producer-owned
 `context:project-agendas@1`.
 
-The gateway exposes it as bounded generic JSON and does not reinterpret its
-freshness model. In particular, MCP v0.2 does not:
+The gateway exposes it as bounded JSON validated against the producer contract
+identity and does not reinterpret its freshness model. In particular, MCP v0.2
+does not:
 
 - calculate a current `as_of` date;
 - turn `review_due_on` into semantic staleness;
