@@ -16,6 +16,7 @@ from mcp.shared.exceptions import McpError
 
 CATALOG_URI = "matias-context://catalog/sources"
 DOCUMENT_URI = "matias-context://source/kb-contracts/document/manual-overview"
+PROJECTS_AGENDA_INDEX_URI = "matias-context://source/projects/document/agenda-index"
 CONFIG_ENV = "MATIAS_CONTEXT_GATEWAY_CONFIG"
 BASE_SOURCE_ENV = (
     "CONTEXT_ROUTING_ROOT",
@@ -187,6 +188,22 @@ async def run_session(args: argparse.Namespace, probe: Probe) -> None:
                     write_json(probe.output / "context-document-response.json", value)
                     return value
                 document = await probe.check("KB Contracts document read", document_check)
+
+                if args.expected_source_count >= 5:
+                    async def projects_index_check() -> dict[str, Any]:
+                        value = await read_json(session, PROJECTS_AGENDA_INDEX_URI)
+                        if value["data"]["json"].get("contract") != "context:project-agendas@1":
+                            raise AssertionError("Projects Agenda index contract mismatch.")
+                        write_json(
+                            probe.output / "projects-agenda-index-response.json",
+                            value,
+                        )
+                        return value
+                    projects_index = await probe.check(
+                        "Projects Agenda index read",
+                        projects_index_check,
+                    )
+                    probe.collected["projects_agenda_index"] = projects_index
 
                 async def errors_check() -> dict[str, Any]:
                     cases = {
