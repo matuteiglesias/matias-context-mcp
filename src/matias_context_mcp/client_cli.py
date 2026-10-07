@@ -143,11 +143,26 @@ def _orientation(
     as_of: str,
 ) -> tuple[str, str, date, int]:
     declared = record.get("declared_freshness")
-    orientation_state, reason, due, _ = _orientation(
-        record,
-        agenda_id=agenda_id,
-        as_of=as_of,
-    )
+    due_value = record.get("review_due_on")
+    try:
+        due = date.fromisoformat(str(due_value))
+        observed = date.fromisoformat(as_of)
+    except ValueError as exc:
+        raise _bootstrap_error(
+            "invalid_agenda_freshness",
+            "Agenda review metadata is not a valid ISO date.",
+            agenda_id=agenda_id,
+        ) from exc
+
+    if declared == "STALE":
+        orientation_state = "refresh-needed"
+        reason = "declared-stale"
+    elif observed >= due:
+        orientation_state = "refresh-needed"
+        reason = "review-due"
+    else:
+        orientation_state = "orientation-ready"
+        reason = "within-review-window"
 
     return orientation_state, reason, due, (observed - due).days
 
