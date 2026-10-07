@@ -39,7 +39,10 @@ canonical_commands:
 - python3 -m matias_context_mcp
 - mctx list
 - mctx templates
-- make test\n- make check\n- make smoke
+- make test
+- make check
+- make smoke
+- make smoke-v02
 - python3 scripts/probe_mcp.py --output-dir artifacts/mvp-evidence
 generated_paths:
 - artifacts/mvp-evidence/
