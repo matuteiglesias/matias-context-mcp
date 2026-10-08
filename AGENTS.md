@@ -4,7 +4,7 @@
 
 ## Mission
 
-Maintain the resource-only MCP gateway with exact v0.1 compatibility and an explicit, additive v0.2 estate-orientation profile, without expanding it into a larger platform.
+Maintain the read-only MCP gateway with exact v0.1/v0.2 compatibility and explicit additive profiles. v0.3 may expose only manifest-bound KB Artifacts selected evidence needed by proven composition dogfood; do not expand it into a general file or query platform.
 
 The required path is:
 
@@ -32,7 +32,7 @@ When implementation and contract disagree, report the disagreement. Do not silen
 
 Included:
 
-* explicit static v0.1/v0.2 profile selection;
+* explicit static v0.1/v0.2/v0.3 profile selection;
 * source catalog;
 * source descriptors;
 * mapped context documents;
@@ -89,6 +89,16 @@ orientation source declared in `docs/mcp_context_gateway_contract_v0_2.md`.
 
 Do not add dynamic profile discovery or silently map one config/profile pair to
 another.
+
+`mcp-context-gateway.v0.3 + evidence-composition-v0.3` is a separate explicit
+opt-in profile. It keeps the same five source identities as v0.2. Only the KB
+Artifacts source gains a selected-evidence locator for canonical
+`artifacts/runs/{selection_id}/selected.jsonl`.
+
+Selected-evidence reads must be bound to a validated sibling manifest checksum,
+must originate from a named corpus with logical `corpus:` provenance, and must
+reconcile manifest selected count with body record count. v0.1/v0.2 must never
+advertise this resource family.
 
 ## Current trusted v0.1 state
 
@@ -209,8 +219,7 @@ Invariants:
 5. MCP must return the already-safe manifest unchanged; do not add a second
    sanitizer to compensate for an unsafe producer path.
 6. This proof covers `summary_bus/chunk_set_summary` only.
-7. Promotion/publication and selected-evidence body transport remain outside the
-   M7 proof.
+7. Promotion/publication remains outside MCP. The original M7 proof remains manifest-only under v0.1/v0.2; Media dogfood justifies checksum-bound selected-evidence body transport only in explicit v0.3.
 
 ## Required validation
 
@@ -223,6 +232,8 @@ make bootstrap-test
 make adoption-experiment
 make smoke
 make smoke-v02
+make smoke-v03
+make media-synthesis-proof MEDIA_MONITOR_ROOT=/path/to/pinned/media-monitor KB_ARTIFACTS_ROOT=/path/to/pinned/kb-artifacts
 ```
 
 Verify:
