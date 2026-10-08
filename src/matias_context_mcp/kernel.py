@@ -168,11 +168,64 @@ class ResourceKernel:
                 },
             )
 
+        selection_request = payload.get("selection_request")
+        counts = payload.get("counts")
+        outputs = payload.get("outputs")
+        if (
+            not isinstance(selection_request, dict)
+            or not isinstance(selection_request.get("corpus"), str)
+            or not selection_request["corpus"].strip()
+        ):
+            raise MalformedManifestError(
+                "Selected evidence requires a named-corpus selection manifest.",
+                resource_uri=manifest_uri,
+            )
+        if (
+            not isinstance(outputs, list)
+            or "selected.jsonl" not in outputs
+        ):
+            raise MalformedManifestError(
+                "Selection manifest does not declare selected.jsonl.",
+                resource_uri=manifest_uri,
+            )
+
         document = normalize(raw)
+        records = document.data.get("records")
+        selected_count = (
+            counts.get("selected")
+            if isinstance(counts, dict)
+            else None
+        )
+        if (
+            not isinstance(records, list)
+            or not isinstance(selected_count, int)
+            or selected_count != len(records)
+        ):
+            raise ResourceIntegrityError(
+                "Selected evidence record count does not match its selection manifest.",
+                resource_uri=ref.uri,
+                details={
+                    "manifest_id": ref.manifest_id,
+                    "manifest_selected_count": selected_count,
+                    "body_record_count": (
+                        len(records)
+                        if isinstance(records, list)
+                        else None
+                    ),
+                },
+            )
+
+        document.data["selection"] = {
+            "selection_request": selection_request,
+            "counts": counts,
+        }
         document.data["integrity"] = {
             "manifest_uri": manifest_uri,
             "manifest_sha256": manifest.sha256,
             "selected_sha256": raw.sha256,
+            "selected_evidence_artifact_id": (
+                "selected-evidence.sha256." + raw.sha256
+            ),
             "verified": True,
         }
         return document
