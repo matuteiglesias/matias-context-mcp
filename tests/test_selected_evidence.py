@@ -164,6 +164,11 @@ def test_v03_selected_evidence_is_manifest_bound_and_path_safe(
     assert envelope["data"]["records"][0]["record_id"] == "media-summary:fixture"
     assert envelope["data"]["records"][0]["annotations"]["key_points"][0] == "Inflación desacelera"
     assert envelope["data"]["integrity"]["verified"] is True
+    assert envelope["data"]["selection"]["selection_request"]["corpus"] == "media-monitor-m7"
+    assert envelope["data"]["selection"]["counts"]["selected"] == 1
+    assert envelope["data"]["integrity"]["selected_evidence_artifact_id"] == (
+        "selected-evidence.sha256." + envelope["resource"]["sha256"]
+    )
     assert (
         envelope["data"]["integrity"]["selected_sha256"]
         == envelope["resource"]["sha256"]
@@ -194,6 +199,32 @@ def test_selected_evidence_requires_manifest_checksum(
     )
 
     with pytest.raises(MalformedManifestError):
+        kernel.read_envelope(URI)
+
+
+def test_selected_evidence_requires_named_corpus_manifest(
+    tmp_path: Path,
+) -> None:
+    kernel, roots = _kernel(tmp_path)
+    _, manifest_path = _write_selection(roots["kb-artifacts"])
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["selection_request"].pop("corpus")
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(MalformedManifestError):
+        kernel.read_envelope(URI)
+
+
+def test_selected_evidence_count_mismatch_fails_closed(
+    tmp_path: Path,
+) -> None:
+    kernel, roots = _kernel(tmp_path)
+    _, manifest_path = _write_selection(roots["kb-artifacts"])
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["counts"]["selected"] = 2
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(ResourceIntegrityError):
         kernel.read_envelope(URI)
 
 
