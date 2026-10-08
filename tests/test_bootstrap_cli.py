@@ -148,6 +148,27 @@ def test_poverty_bootstrap_is_ready_on_2026_10_07(
     assert packet["warnings"] == []
 
 
+def test_new_context_room_bootstrap_uses_ordinary_governed_resources(
+    v02_environment: tuple[
+        dict[str, str],
+        dict[str, Path],
+    ],
+) -> None:
+    environment, _ = v02_environment
+    packet = _success(
+        _mctx(
+            environment,
+            "bootstrap",
+            "context-discovery-mcp",
+            "--as-of",
+            "2026-10-08",
+        )
+    )
+    assert packet["agenda_id"] == "context-discovery-mcp"
+    assert packet["orientation_state"] == "orientation-ready"
+    assert packet["provenance"]["agenda_index_matches_resource"] is True
+
+
 def test_review_due_date_itself_requires_refresh(
     v02_environment: tuple[
         dict[str, str],
@@ -279,9 +300,9 @@ def test_portfolio_summarizes_all_agendas_without_expanding_documents(
     assert packet["contract"] == "mctx.portfolio@1"
     assert packet["as_of"] == "2026-10-07"
     assert packet["summary"] == {
-        "total": 8,
+        "total": 27,
         "refresh_needed": 1,
-        "orientation_ready": 7,
+        "orientation_ready": 26,
     }
     assert packet["ordering"] == {
         "basis": "freshness-attention",

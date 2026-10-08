@@ -53,6 +53,25 @@ The Projects source exposes only this allowlist:
 | `media-monitor` | `estate/agendas/media-monitor.md` |
 | `poverty-ecosystem` | `estate/agendas/poverty-ecosystem.md` |
 | `relationships-opportunities` | `estate/agendas/relationships-opportunities.md` |
+| `estate-sensing-observability` | `estate/agendas/estate-sensing-observability.md` |
+| `office-execution-loop` | `estate/agendas/office-execution-loop.md` |
+| `context-discovery-mcp` | `estate/agendas/context-discovery-mcp.md` |
+| `knowledge-evidence-fabric` | `estate/agendas/knowledge-evidence-fabric.md` |
+| `youtube-following-product` | `estate/agendas/youtube-following-product.md` |
+| `public-professional-publishing` | `estate/agendas/public-professional-publishing.md` |
+| `census-query-product` | `estate/agendas/census-query-product.md` |
+| `rxdb-census-extraction` | `estate/agendas/rxdb-census-extraction.md` |
+| `census-sampling-alignment` | `estate/agendas/census-sampling-alignment.md` |
+| `price-basket-science` | `estate/agendas/price-basket-science.md` |
+| `engho-consumption-research` | `estate/agendas/engho-consumption-research.md` |
+| `eph-labor-state` | `estate/agendas/eph-labor-state.md` |
+| `argentina-geography` | `estate/agendas/argentina-geography.md` |
+| `electoral-data` | `estate/agendas/electoral-data.md` |
+| `economic-scaling-research` | `estate/agendas/economic-scaling-research.md` |
+| `teaching-tools` | `estate/agendas/teaching-tools.md` |
+| `lcd-knowledge-corpus` | `estate/agendas/lcd-knowledge-corpus.md` |
+| `site-factory-workflow` | `estate/agendas/site-factory-workflow.md` |
+| `political-knowledge-sources` | `estate/agendas/political-knowledge-sources.md` |
 
 Projects has no gateway manifest profile.
 
@@ -126,3 +145,21 @@ When the v0.1 configuration is selected:
 - the existing v0.1 smoke remains the default `make smoke`.
 
 The separate `make smoke-v02` acceptance path proves the five-source profile.
+
+## Expanded Projects Agenda allowlist — October 2026
+
+This is an additive set of 19 reviewed **logical document mappings** for the
+`projects` source, matching the 27-record Projects Agenda index proposed in
+[Projects PR #63](https://github.com/matuteiglesias/projects/pull/63).
+The gateway continues using exactly the same v0.2 resource URI family and five
+source identities; v0.1 retains its four-source profile unchanged. v0.3 shares
+the v0.2 Projects mapping and preserves its selected-evidence boundary.
+
+**Deployment sequence:** first merge Projects PR #63, refresh the operator's
+`PROJECTS_ROOT` checkout to that Projects main commit, and verify
+`make agenda-check`. Only then upgrade the installed MCP package to this
+mapping set; startup fails closed if any mapped Agenda document is missing.
+
+New Agenda files are documentation-seeded orientation, not guaranteed live
+project status. Their `front_ids` remain unmapped until Control Tower identity
+reconciliation. A `mctx bootstrap` result is not authority to execute.

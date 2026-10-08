@@ -36,6 +36,25 @@ PROJECT_AGENDA_FIXTURES = {
     "relationships-opportunities": {
         "review_due_on": "2026-10-20",
     },
+    "estate-sensing-observability": {"review_due_on": "2026-10-20"},
+    "office-execution-loop": {"review_due_on": "2026-10-20"},
+    "context-discovery-mcp": {"review_due_on": "2026-10-20"},
+    "knowledge-evidence-fabric": {"review_due_on": "2026-10-20"},
+    "youtube-following-product": {"review_due_on": "2026-10-20"},
+    "public-professional-publishing": {"review_due_on": "2026-10-20"},
+    "census-query-product": {"review_due_on": "2026-10-20"},
+    "rxdb-census-extraction": {"review_due_on": "2026-10-20"},
+    "census-sampling-alignment": {"review_due_on": "2026-10-20"},
+    "price-basket-science": {"review_due_on": "2026-10-20"},
+    "engho-consumption-research": {"review_due_on": "2026-10-20"},
+    "eph-labor-state": {"review_due_on": "2026-10-20"},
+    "argentina-geography": {"review_due_on": "2026-10-20"},
+    "electoral-data": {"review_due_on": "2026-10-20"},
+    "economic-scaling-research": {"review_due_on": "2026-10-20"},
+    "teaching-tools": {"review_due_on": "2026-10-20"},
+    "lcd-knowledge-corpus": {"review_due_on": "2026-10-20"},
+    "site-factory-workflow": {"review_due_on": "2026-10-20"},
+    "political-knowledge-sources": {"review_due_on": "2026-10-20"},
 }
 
 
