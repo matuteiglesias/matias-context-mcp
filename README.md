@@ -388,3 +388,13 @@ The kernel does not import MCP SDK types and can be reused by a CLI or another t
 ## Portfolio summary
 
 > Designed and implemented a read-only MCP gateway over an existing ecosystem of governed context sources and producer manifests. The gateway uses logical resource URIs, explicit allowlists, canonical path containment, bounded reads, provenance-rich responses and a transport-independent kernel. It is validated end to end with a real MCP client over local stdio, including capability negotiation and unauthorized-access rejection.
+
+## Projects Agenda coverage transition
+
+An additive 27-room Projects Agenda allowlist is prepared on a downstream branch
+for [Projects PR #63](https://github.com/matuteiglesias/projects/pull/63).
+Upgrading the gateway before updating the mounted Projects main checkout will
+fail startup preflight on the newly mapped documents. Retain the existing
+installed gateway until Projects and its 27-record generated index are
+approved, merged and available on the operator's stable `PROJECTS_ROOT`.
+The four-source v0.1 profile and the MCP protocol surface do not change.
