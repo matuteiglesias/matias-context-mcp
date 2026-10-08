@@ -20,11 +20,13 @@ from pydantic import ValidationError
 
 BOOTSTRAP_CONTRACT = "mctx.bootstrap@1"
 PORTFOLIO_CONTRACT = "mctx.portfolio@1"
+EVIDENCE_CONTRACT = "mctx.evidence@1"
 PROJECTS_SOURCE_URI = "matias-context://source/projects"
 AGENDA_INDEX_URI = "matias-context://source/projects/document/agenda-index"
 STAFF_URI = "matias-context://source/projects/document/staff-operating-model"
 AGENDA_URI_TEMPLATE = "matias-context://source/projects/document/{agenda_id}"
 _AGENDA_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
+_SELECTION_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 
 class _ArgumentParser(argparse.ArgumentParser):
@@ -57,6 +59,14 @@ def _agenda_id(value: str) -> str:
     return value
 
 
+def _selection_id(value: str) -> str:
+    if ".." in value or not _SELECTION_ID.fullmatch(value):
+        raise argparse.ArgumentTypeError(
+            "selection must be one validated KB Artifacts run ID."
+        )
+    return value
+
+
 def _arguments(argv: Sequence[str] | None) -> argparse.Namespace:
     parser = _ArgumentParser(prog="mctx")
     commands = parser.add_subparsers(dest="operation", required=True)
@@ -78,6 +88,12 @@ def _arguments(argv: Sequence[str] | None) -> argparse.Namespace:
         required=True,
         type=_as_of,
         help="Explicit orientation date (YYYY-MM-DD).",
+    )
+    evidence = commands.add_parser("evidence")
+    evidence.add_argument(
+        "selection_id",
+        type=_selection_id,
+        help="Named KB Artifacts selection run ID.",
     )
     return parser.parse_args(argv)
 
@@ -496,6 +512,86 @@ async def _portfolio(
     }
 
 
+async def _evidence(
+    session: ClientSession,
+    *,
+    selection_id: str,
+) -> dict[str, Any]:
+    uri = (
+        "matias-context://selected/kb-artifacts/"
+        + selection_id
+    )
+    try:
+        envelope = await _read_json(session, uri)
+    except McpError as exc:
+        if _mcp_error_code(exc) == "invalid_uri":
+            raise _bootstrap_error(
+                "evidence_requires_v03",
+                "Evidence body reads require the explicit evidence-composition v0.3 profile.",
+                required_profile="evidence-composition-v0.3",
+            ) from exc
+        raise
+
+    resource = envelope.get("resource")
+    data = envelope.get("data")
+    if (
+        not isinstance(resource, dict)
+        or resource.get("family") != "selected_evidence"
+        or resource.get("producer_id") != "kb-artifacts"
+        or resource.get("logical_id") != selection_id
+        or not isinstance(data, dict)
+    ):
+        raise _bootstrap_error(
+            "invalid_selected_evidence",
+            "The MCP selected-evidence response is incompatible with mctx evidence.",
+            selection_id=selection_id,
+        )
+
+    records = data.get("records")
+    integrity = data.get("integrity")
+    selection = data.get("selection")
+    if (
+        not isinstance(records, list)
+        or not isinstance(integrity, dict)
+        or integrity.get("verified") is not True
+        or not isinstance(selection, dict)
+    ):
+        raise _bootstrap_error(
+            "invalid_selected_evidence",
+            "Selected evidence is missing validated body, selection, or integrity metadata.",
+            selection_id=selection_id,
+        )
+
+    artifact_id = integrity.get(
+        "selected_evidence_artifact_id"
+    )
+    if (
+        not isinstance(artifact_id, str)
+        or artifact_id
+        != "selected-evidence.sha256."
+        + str(integrity.get("selected_sha256"))
+    ):
+        raise _bootstrap_error(
+            "invalid_selected_evidence",
+            "Selected evidence has inconsistent content-addressed identity.",
+            selection_id=selection_id,
+        )
+
+    return {
+        "contract": EVIDENCE_CONTRACT,
+        "selection_id": selection_id,
+        "producer_id": "kb-artifacts",
+        "record_count": len(records),
+        "selection": selection,
+        "records": records,
+        "integrity": integrity,
+        "provenance": {
+            "resource_uri": uri,
+            "resource_sha256": resource.get("sha256"),
+        },
+    }
+
+
 async def _run(args: argparse.Namespace) -> Any:
     async with stdio_client(
         _server_parameters(),
@@ -519,6 +615,11 @@ async def _run(args: argparse.Namespace) -> Any:
                 return await _portfolio(
                     session,
                     as_of=args.as_of,
+                )
+            if args.operation == "evidence":
+                return await _evidence(
+                    session,
+                    selection_id=args.selection_id,
                 )
             return await _read_json(session, args.uri)
 
@@ -585,7 +686,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "Use: mctx list | mctx templates | "
                         "mctx read URI | "
                         "mctx bootstrap AGENDA --as-of YYYY-MM-DD | "
-                        "mctx portfolio --as-of YYYY-MM-DD"
+                        "mctx portfolio --as-of YYYY-MM-DD | "
+                        "mctx evidence SELECTION_ID"
                     ),
                     "details": {},
                 }
