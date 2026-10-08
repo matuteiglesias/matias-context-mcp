@@ -84,6 +84,11 @@ class MalformedManifestError(GatewayError):
     rpc_code = -32014
 
 
+class ResourceIntegrityError(GatewayError):
+    error_code = "resource_integrity_mismatch"
+    rpc_code = -32015
+
+
 class ConfigurationError(GatewayError):
     error_code = "configuration_error"
     rpc_code = -32603

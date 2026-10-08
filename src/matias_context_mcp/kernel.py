@@ -10,13 +10,14 @@ from .generated import (
     build_source_descriptor,
 )
 from .manifest_summary import build_manifest_summary
+from .errors import InvalidURIError, MalformedManifestError, ResourceIntegrityError
 from .models import (
     ResourceDocument,
     ResourceRef,
 )
 from .normalizer import normalize
 from .policy import ReadPolicy
-from .profile import V01_CONFIG_VERSION, V01_PROFILE_ID
+from .profile import V01_CONFIG_VERSION, V01_PROFILE_ID, V03_CONFIG_VERSION, V03_PROFILE_ID
 from .registry import SourceRegistry
 from .resolver import parse_resource_uri
 
@@ -98,6 +99,133 @@ class ResourceKernel:
         self,
         ref: ResourceRef,
     ) -> ResourceDocument:
+        if ref.resource_family == "selected_evidence":
+            if (
+                self.contract_version != V03_CONFIG_VERSION
+                or self.profile_id != V03_PROFILE_ID
+            ):
+                raise InvalidURIError(
+                    "Invalid resource URI.",
+                    resource_uri=ref.uri,
+                )
+            return self._read_selected_evidence(ref)
+
         authorized = self._policy.authorize(ref)
         raw = self._filesystem.read(authorized)
         return normalize(raw)
+
+    def _read_selected_evidence(
+        self,
+        ref: ResourceRef,
+    ) -> ResourceDocument:
+        assert ref.producer_id is not None
+        assert ref.manifest_id is not None
+
+        authorized = self._policy.authorize(ref)
+        raw = self._filesystem.read(authorized)
+
+        manifest_uri = (
+            "matias-context://manifest/"
+            f"{ref.producer_id}/{ref.manifest_id}"
+        )
+        manifest = self._read_ref(
+            ResourceRef(
+                uri=manifest_uri,
+                resource_family="manifest",
+                producer_id=ref.producer_id,
+                manifest_id=ref.manifest_id,
+            )
+        )
+        payload = manifest.data.get("json")
+        if not isinstance(payload, dict):
+            raise MalformedManifestError(
+                "Selection manifest is missing normalized JSON.",
+                resource_uri=manifest_uri,
+            )
+        checksums = payload.get("output_checksums")
+        expected = (
+            checksums.get("selected.jsonl")
+            if isinstance(checksums, dict)
+            else None
+        )
+        if (
+            not isinstance(expected, str)
+            or len(expected) != 64
+            or any(character not in "0123456789abcdef" for character in expected)
+        ):
+            raise MalformedManifestError(
+                "Selection manifest does not bind selected.jsonl.",
+                resource_uri=manifest_uri,
+            )
+        if raw.sha256 != expected:
+            raise ResourceIntegrityError(
+                "Selected evidence does not match its selection manifest.",
+                resource_uri=ref.uri,
+                details={
+                    "manifest_id": ref.manifest_id,
+                    "expected_sha256": expected,
+                    "actual_sha256": raw.sha256,
+                },
+            )
+
+        selection_request = payload.get("selection_request")
+        counts = payload.get("counts")
+        outputs = payload.get("outputs")
+        if (
+            not isinstance(selection_request, dict)
+            or not isinstance(selection_request.get("corpus"), str)
+            or not selection_request["corpus"].strip()
+        ):
+            raise MalformedManifestError(
+                "Selected evidence requires a named-corpus selection manifest.",
+                resource_uri=manifest_uri,
+            )
+        if (
+            not isinstance(outputs, list)
+            or "selected.jsonl" not in outputs
+        ):
+            raise MalformedManifestError(
+                "Selection manifest does not declare selected.jsonl.",
+                resource_uri=manifest_uri,
+            )
+
+        document = normalize(raw)
+        records = document.data.get("records")
+        selected_count = (
+            counts.get("selected")
+            if isinstance(counts, dict)
+            else None
+        )
+        if (
+            not isinstance(records, list)
+            or not isinstance(selected_count, int)
+            or selected_count != len(records)
+        ):
+            raise ResourceIntegrityError(
+                "Selected evidence record count does not match its selection manifest.",
+                resource_uri=ref.uri,
+                details={
+                    "manifest_id": ref.manifest_id,
+                    "manifest_selected_count": selected_count,
+                    "body_record_count": (
+                        len(records)
+                        if isinstance(records, list)
+                        else None
+                    ),
+                },
+            )
+
+        document.data["selection"] = {
+            "selection_request": selection_request,
+            "counts": counts,
+        }
+        document.data["integrity"] = {
+            "manifest_uri": manifest_uri,
+            "manifest_sha256": manifest.sha256,
+            "selected_sha256": raw.sha256,
+            "selected_evidence_artifact_id": (
+                "selected-evidence.sha256." + raw.sha256
+            ),
+            "verified": True,
+        }
+        return document

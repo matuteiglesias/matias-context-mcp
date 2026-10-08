@@ -4,16 +4,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .models import DocumentSpec, ManifestProfile
+from .models import DocumentSpec, ManifestProfile, SelectedEvidenceProfile
 
 V01_CONFIG_VERSION = "mcp-context-gateway.v0.1"
 V01_PROFILE_ID = "mvp-four-sources"
 V02_CONFIG_VERSION = "mcp-context-gateway.v0.2"
 V02_PROFILE_ID = "estate-orientation-v0.2"
+V03_CONFIG_VERSION = "mcp-context-gateway.v0.3"
+V03_PROFILE_ID = "evidence-composition-v0.3"
 
 HARD_MAX_BYTES = 262_144
 SYSTEM_DECLARATION_MAX_BYTES = 65_536
-SUPPORTED_EXTENSIONS = frozenset({".md", ".json"})
+SUPPORTED_EXTENSIONS = frozenset({".md", ".json", ".jsonl"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +37,7 @@ class ProfileSource:
     identity: SourceIdentityExpectation
     documents: tuple[DocumentSpec, ...]
     manifest_profile: ManifestProfile | None = None
+    selected_evidence_profile: SelectedEvidenceProfile | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -180,6 +183,24 @@ V01_SOURCES: tuple[ProfileSource, ...] = (
     ),
 )
 
+KB_ARTIFACTS_V03_SOURCE = ProfileSource(
+    source_id=V01_SOURCES[3].source_id,
+    display_name=V01_SOURCES[3].display_name,
+    role=V01_SOURCES[3].role,
+    authority=V01_SOURCES[3].authority,
+    root_env=V01_SOURCES[3].root_env,
+    identity=V01_SOURCES[3].identity,
+    documents=V01_SOURCES[3].documents,
+    manifest_profile=V01_SOURCES[3].manifest_profile,
+    selected_evidence_profile=SelectedEvidenceProfile(
+        producer_id="kb-artifacts",
+        locator="artifacts/runs/{manifest_id}/selected.jsonl",
+        media_type="application/x-ndjson",
+        codec="kb_selected_evidence",
+    ),
+)
+
+
 PROJECTS_SOURCE = ProfileSource(
     source_id="projects",
     display_name="Projects",
@@ -279,10 +300,15 @@ V02_PROFILE = GatewayProfile(
     profile_id=V02_PROFILE_ID,
     sources=V01_SOURCES + (PROJECTS_SOURCE,),
 )
+V03_PROFILE = GatewayProfile(
+    config_version=V03_CONFIG_VERSION,
+    profile_id=V03_PROFILE_ID,
+    sources=V01_SOURCES[:3] + (KB_ARTIFACTS_V03_SOURCE, PROJECTS_SOURCE),
+)
 
 PROFILE_REGISTRY: dict[tuple[str, str], GatewayProfile] = {
     (profile.config_version, profile.profile_id): profile
-    for profile in (V01_PROFILE, V02_PROFILE)
+    for profile in (V01_PROFILE, V02_PROFILE, V03_PROFILE)
 }
 
 

@@ -33,6 +33,7 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--knowledge-inspect-manifest-id", default=os.getenv("KNOWLEDGE_INSPECT_MANIFEST_ID"))
     parser.add_argument("--kb-artifacts-manifest-id", default=os.getenv("KB_ARTIFACTS_MANIFEST_ID"))
     parser.add_argument("--expected-source-count", type=int, default=4)
+    parser.add_argument("--expect-selected-evidence", action="store_true")
     return parser.parse_args()
 
 
@@ -174,6 +175,11 @@ async def run_session(args: argparse.Namespace, probe: Probe) -> None:
                     actual = {item["uriTemplate"] for item in templates["resourceTemplates"]}
                     if not expected <= actual:
                         raise AssertionError("Resource templates are incomplete.")
+                    selected = "matias-context://selected/{producer_id}/{manifest_id}"
+                    if args.expect_selected_evidence and selected not in actual:
+                        raise AssertionError("v0.3 selected-evidence template is missing.")
+                    if not args.expect_selected_evidence and selected in actual:
+                        raise AssertionError("selected-evidence template leaked into an older profile.")
                 await probe.check("resource discovery", discovery_check)
 
                 async def catalog_check() -> dict[str, Any]:
@@ -243,6 +249,27 @@ async def run_session(args: argparse.Namespace, probe: Probe) -> None:
                         probe.collected[key] = value
                         return value
                     await probe.check(f"{producer} manifest read", manifest_check, required=False)
+
+                if args.expect_selected_evidence and args.kb_artifacts_manifest_id:
+                    selected_uri = (
+                        "matias-context://selected/kb-artifacts/"
+                        + args.kb_artifacts_manifest_id
+                    )
+                    async def selected_check() -> dict[str, Any]:
+                        value = await read_json(session, selected_uri)
+                        if value["resource"]["family"] != "selected_evidence":
+                            raise AssertionError("unexpected selected-evidence family")
+                        if not value["data"].get("records"):
+                            raise AssertionError("selected-evidence body is empty")
+                        if not value["data"].get("integrity", {}).get("verified"):
+                            raise AssertionError("selected-evidence integrity is not verified")
+                        write_json(
+                            probe.output / "kb-artifacts-selected-evidence-response.json",
+                            value,
+                        )
+                        probe.collected["kb_artifacts_selected_evidence"] = value
+                        return value
+                    await probe.check("kb-artifacts selected evidence read", selected_check)
 
                 async def leakage_check() -> None:
                     serialized = json.dumps(probe.collected, sort_keys=True)

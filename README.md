@@ -38,6 +38,8 @@ The source repositories remain authoritative.
 
 **estate-orientation v0.2 profile: explicit opt-in**
 
+**evidence-composition v0.3 profile: explicit opt-in**
+
 v0.1 remains the four-source compatibility profile. v0.2 adds one statically
 governed Projects source for estate orientation without changing the MCP
 capability surface.
@@ -71,6 +73,7 @@ matias-context://catalog/sources
 matias-context://source/{source_id}
 matias-context://source/{source_id}/document/{document_id}
 matias-context://manifest/{producer_id}/{manifest_id}
+matias-context://selected/kb-artifacts/{selection_id}   # v0.3 only
 ```
 
 The client never supplies or receives a physical filesystem path.
@@ -151,6 +154,18 @@ export PROJECTS_ROOT="$HOME/repos/projects"
 The v0.2 contract is documented in
 [`docs/mcp_context_gateway_contract_v0_2.md`](docs/mcp_context_gateway_contract_v0_2.md).
 
+To opt into manifest-bound selected-evidence reads, use the five-source v0.3
+profile:
+
+```bash
+export MATIAS_CONTEXT_GATEWAY_CONFIG="$PWD/config/sources.v0.3.example.json"
+```
+
+v0.3 changes no source identity or Project orientation semantics. It only lets
+the existing KB Artifacts source expose checksum-bound named-corpus
+`selected.jsonl` bodies. See
+[`docs/mcp_context_gateway_contract_v0_3.md`](docs/mcp_context_gateway_contract_v0_3.md).
+
 These roots are operator configuration. They are not MCP client roots and cannot be changed by a client.
 
 Each root must present the exact governed `SYSTEM.yaml` identity pinned by the
@@ -203,6 +218,7 @@ mctx read \
 mctx bootstrap media-monitor --as-of 2026-10-07
 mctx bootstrap poverty-ecosystem --as-of 2026-10-07
 mctx portfolio --as-of 2026-10-07
+mctx evidence m7-media-monitor-fixture  # v0.3 only
 
 # Ordinary shell redirection remains available to the operator
 mctx read 'matias-context://catalog/sources' > catalog.json
@@ -316,9 +332,18 @@ The pinned CI proof preserves the producer adapter checksum into the selection
 manifest, creates one content-addressed selected-evidence identity, and confirms
 the MCP response leaks no producer checkout roots.
 
-The gateway does not expose the selected evidence body and does not perform
-selection or promotion. See
-[`docs/m7_knowledge_composition_2026-10-07.md`](docs/m7_knowledge_composition_2026-10-07.md).
+The original M7 proof remains valid for v0.1/v0.2 manifest transport. Media
+dogfood then demonstrated that provenance-only manifest reads were insufficient
+for synthesis, because the selected summary bodies stayed outside MCP. The
+explicit v0.3 profile adds only a checksum-bound named-corpus selected-evidence
+read, with `mctx evidence SELECTION_ID` as the client surface. The pinned Media
+proof verifies a two-channel topic/date selection and reconstructs a recurring
+claim without physical-path knowledge.
+
+The gateway still does not execute selection, summarization, promotion, or
+publication. See
+[`docs/m7_knowledge_composition_2026-10-07.md`](docs/m7_knowledge_composition_2026-10-07.md)
+and [the v0.3 contract](docs/mcp_context_gateway_contract_v0_3.md).
 
 ## Architecture
 

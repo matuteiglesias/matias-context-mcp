@@ -35,6 +35,9 @@ class ReadPolicy:
         if ref.resource_family == "manifest":
             return self._authorize_manifest(ref)
 
+        if ref.resource_family == "selected_evidence":
+            return self._authorize_selected_evidence(ref)
+
         raise InvalidURIError(
             "Resource does not resolve "
             "to a filesystem read.",
@@ -105,6 +108,38 @@ class ReadPolicy:
             producer_id=profile.producer_id,
             manifest_producer_id=profile.manifest_producer_id,
         )
+
+    def _authorize_selected_evidence(
+        self,
+        ref: ResourceRef,
+    ) -> AuthorizedRead:
+        assert ref.producer_id is not None
+        assert ref.manifest_id is not None
+
+        source = self._registry.get_producer(
+            ref.producer_id,
+            resource_uri=ref.uri,
+        )
+        profile = source.selected_evidence_profile
+        if profile is None:
+            raise InvalidURIError(
+                "Selected evidence is not exposed by the active profile.",
+                resource_uri=ref.uri,
+            )
+
+        relative_path = profile.locator.format(
+            manifest_id=ref.manifest_id
+        )
+        return self._authorize_path(
+            ref=ref,
+            source=source,
+            logical_id=ref.manifest_id,
+            relative_path=relative_path,
+            media_type=profile.media_type,
+            codec=profile.codec,
+            producer_id=profile.producer_id,
+        )
+
 
     def _authorize_path(
         self,

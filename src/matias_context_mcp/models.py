@@ -25,6 +25,14 @@ class ManifestProfile:
 
 
 @dataclass(frozen=True, slots=True)
+class SelectedEvidenceProfile:
+    producer_id: str
+    locator: str
+    media_type: str
+    codec: str
+
+
+@dataclass(frozen=True, slots=True)
 class VerifiedSourceIdentity:
     schema_version: int
     declaration_id: str
@@ -45,6 +53,7 @@ class SourceSpec:
     maximum_bytes: int
     allowed_extensions: frozenset[str]
     manifest_profile: ManifestProfile | None = None
+    selected_evidence_profile: SelectedEvidenceProfile | None = None
     identity: VerifiedSourceIdentity | None = None
 
     def document(self, document_id: str) -> DocumentSpec | None:

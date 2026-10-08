@@ -18,6 +18,9 @@ from matias_context_mcp.profile import (
     V02_CONFIG_VERSION,
     V02_PROFILE,
     V02_PROFILE_ID,
+    V03_CONFIG_VERSION,
+    V03_PROFILE,
+    V03_PROFILE_ID,
 )
 from tests.helpers import provision_profile
 
@@ -247,3 +250,43 @@ def test_v02_rejects_wrong_projects_agenda_index_contract(
     assert failure.value.details["source_id"] == "projects"
     assert failure.value.details["document_id"] == "agenda-index"
     assert failure.value.details["cause"] == "malformed_json"
+
+
+def test_v03_extends_v02_only_with_selected_evidence_capability(
+    tmp_path: Path,
+) -> None:
+    assert [
+        source.source_id
+        for source in V03_PROFILE.sources
+    ] == [
+        source.source_id
+        for source in V02_PROFILE.sources
+    ]
+    assert V03_PROFILE.sources[:3] == V02_PROFILE.sources[:3]
+    assert V03_PROFILE.sources[4] == V02_PROFILE.sources[4]
+    assert V02_PROFILE.sources[3].selected_evidence_profile is None
+    assert (
+        V03_PROFILE.sources[3].selected_evidence_profile
+        is not None
+    )
+
+    settings, kernel, _, _, _ = _load_profile(
+        tmp_path,
+        V03_PROFILE,
+    )
+    catalog = kernel.read_envelope(
+        "matias-context://catalog/sources"
+    )
+    assert settings.config_version == V03_CONFIG_VERSION
+    assert settings.profile == V03_PROFILE_ID
+    assert catalog["data"]["count"] == 5
+    assert [
+        item["source_id"]
+        for item in catalog["data"]["sources"]
+    ] == [
+        "context-routing",
+        "kb-contracts",
+        "knowledge-inspect",
+        "kb-artifacts",
+        "projects",
+    ]

@@ -74,6 +74,23 @@ def normalize(
             )
         }
 
+    elif authorized.content_media_type == "application/x-ndjson":
+        records = _parse_ndjson(
+            text,
+            uri=authorized.requested_uri,
+        )
+        if authorized.codec != "kb_selected_evidence":
+            raise UnsupportedFormatError(
+                "Configured NDJSON resource codec is not supported.",
+                resource_uri=authorized.requested_uri,
+            )
+        data = {
+            "records": _validate_kb_selected_evidence(
+                records,
+                uri=authorized.requested_uri,
+            )
+        }
+
     else:
         raise UnsupportedFormatError(
             "Resource media type is not supported.",
@@ -107,6 +124,72 @@ def _parse_json(
             "Resource is not valid JSON.",
             resource_uri=uri,
         ) from exc
+
+
+def _parse_ndjson(
+    text: str,
+    *,
+    uri: str,
+) -> list[Any]:
+    records: list[Any] = []
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError as exc:
+            raise MalformedJSONError(
+                "Selected evidence is not valid line-delimited JSON.",
+                resource_uri=uri,
+                details={"line_number": line_number},
+            ) from exc
+    return records
+
+
+def _validate_kb_selected_evidence(
+    records: list[Any],
+    *,
+    uri: str,
+) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    for index, record in enumerate(records, start=1):
+        if not isinstance(record, dict):
+            raise MalformedJSONError(
+                "Selected evidence records must be JSON objects.",
+                resource_uri=uri,
+                details={"record_number": index},
+            )
+        if (
+            not isinstance(record.get("record_id"), str)
+            or not isinstance(record.get("source_kind"), str)
+            or not isinstance(record.get("annotations"), dict)
+            or not isinstance(record.get("provenance"), dict)
+        ):
+            raise MalformedJSONError(
+                "Selected evidence record is missing required fields.",
+                resource_uri=uri,
+                details={"record_number": index},
+            )
+        partition = record["provenance"].get("partition")
+        if (
+            not isinstance(partition, str)
+            or not partition.startswith("corpus:")
+            or ".." in partition
+        ):
+            raise MalformedJSONError(
+                "Selected evidence provenance is not a logical corpus alias.",
+                resource_uri=uri,
+                details={"record_number": index},
+            )
+        summary = record.get("summary")
+        if summary is not None and not isinstance(summary, str):
+            raise MalformedJSONError(
+                "Selected evidence summary must be text or null.",
+                resource_uri=uri,
+                details={"record_number": index},
+            )
+        normalized.append(record)
+    return normalized
 
 
 def _apply_codec(

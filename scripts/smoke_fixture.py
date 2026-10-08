@@ -19,6 +19,8 @@ from matias_context_mcp.profile import (
     V01_PROFILE_ID,
     V02_PROFILE,
     V02_PROFILE_ID,
+    V03_PROFILE,
+    V03_PROFILE_ID,
 )
 
 
@@ -120,23 +122,53 @@ def _write_sources(
     )
 
     selection_id = "selection-2026-10-07T120000Z"
-    selection_manifest = (
+    selection_root = (
         root
         / "kb-artifacts"
         / "artifacts"
         / "runs"
         / selection_id
-        / "manifest.json"
     )
-    selection_manifest.parent.mkdir(parents=True, exist_ok=True)
+    selection_root.mkdir(parents=True, exist_ok=True)
+    selected_body = (
+        json.dumps(
+            {
+                "record_id": "fixture:selected:1",
+                "source_kind": "chunk",
+                "title": "Fixture selected evidence",
+                "summary": "Governed fixture summary.",
+                "annotations": {"source_id": "fixture-source", "key_points": ["One", "Two"]},
+                "tags": ["fixture"],
+                "timestamp": "2026-10-07T12:00:00+00:00",
+                "provenance": {
+                    "partition": "corpus:fixture/chunk:1",
+                    "line_number": 1,
+                    "text_sha256": "0" * 64,
+                    "source_ref": "fixture:selected:1",
+                },
+                "selection_reasons": ["tag:fixture"],
+                "artifact_family": None,
+                "artifact_maturity": None,
+            },
+            sort_keys=True,
+        )
+        + "\n"
+    )
+    selected_path = selection_root / "selected.jsonl"
+    selected_path.write_text(selected_body, encoding="utf-8")
+    import hashlib
+    selection_manifest = selection_root / "manifest.json"
     selection_manifest.write_text(
         json.dumps(
             {
                 "selection_request": {"tags": ["fixture"]},
                 "generated_at": "2026-10-07T12:00:00Z",
                 "matched_partitions": [],
-                "counts": {"selected": 0},
-                "outputs": {"manifest": "manifest.json"},
+                "counts": {"selected": 1},
+                "outputs": ["selected.jsonl", "selected.csv", "artifact.md", "manifest.json"],
+                "output_checksums": {
+                    "selected.jsonl": hashlib.sha256(selected_body.encode("utf-8")).hexdigest()
+                },
             }
         ),
         encoding="utf-8",
@@ -156,16 +188,16 @@ def main() -> int:
     )
     parser.add_argument(
         "--profile",
-        choices=(V01_PROFILE_ID, V02_PROFILE_ID),
+        choices=(V01_PROFILE_ID, V02_PROFILE_ID, V03_PROFILE_ID),
         default=V01_PROFILE_ID,
     )
     args = parser.parse_args()
 
-    profile = (
-        V01_PROFILE
-        if args.profile == V01_PROFILE_ID
-        else V02_PROFILE
-    )
+    profile = {
+        V01_PROFILE_ID: V01_PROFILE,
+        V02_PROFILE_ID: V02_PROFILE,
+        V03_PROFILE_ID: V03_PROFILE,
+    }[args.profile]
     repository = Path(__file__).resolve().parents[1]
     with tempfile.TemporaryDirectory(prefix="mctx-smoke-") as temp:
         root = Path(temp)
@@ -195,6 +227,7 @@ def main() -> int:
                 str(args.output_dir),
                 "--expected-source-count",
                 str(len(profile.sources)),
+                *(["--expect-selected-evidence"] if profile.profile_id == V03_PROFILE_ID else []),
             ],
             cwd=repository,
             env=environment,
