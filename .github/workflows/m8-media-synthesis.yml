@@ -1,0 +1,49 @@
+name: M8 Media evidence synthesis proof
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out MCP gateway
+        uses: actions/checkout@v4
+      - name: Check out pinned Media Monitor
+        uses: actions/checkout@v4
+        with:
+          repository: matuteiglesias/media_monitor
+          ref: 84e0373d362fec6c3d81b6c39be1a68fd64c3d2f
+          path: .producer/media-monitor
+      - name: Check out checksum-bound KB Artifacts
+        uses: actions/checkout@v4
+        with:
+          repository: matuteiglesias/kb-artifacts
+          ref: 3daf0d9f6d53fc6ae94896d72769536273382943
+          path: .consumer/kb-artifacts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install gateway and bounded proof dependencies
+        run: |
+          python -m pip install -e '.[dev]'
+          python -m pip install -e '.consumer/kb-artifacts[dev]'
+          python -m pip install jsonschema PyYAML
+      - name: Prove Media selection body through MCP and recurrence projection
+        env:
+          MEDIA_MONITOR_ROOT: ${{ github.workspace }}/.producer/media-monitor
+          KB_ARTIFACTS_ROOT: ${{ github.workspace }}/.consumer/kb-artifacts
+        run: make media-synthesis-proof
+      - name: Upload synthesis proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m8-media-synthesis-proof
+          path: artifacts/m8-media-synthesis
+          if-no-files-found: warn
